@@ -162,11 +162,11 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* KPI Overview Grid */}
+      {/* KPI Overview Grid - 4 Metric Cards in One Single Line */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
           gap: '1.25rem',
           marginBottom: '2.5rem'
         }}
