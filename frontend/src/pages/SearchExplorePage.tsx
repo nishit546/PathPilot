@@ -77,31 +77,54 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
 
   const filteredCities = cities
     .filter(c => {
+      const name = (c.name || '').toLowerCase();
+      const country = (c.country || '').toLowerCase();
+      const description = (c.description || '').toLowerCase();
+      const region = (c.region || '').toLowerCase();
+      const query = (search || '').toLowerCase().trim();
+
       const matchesSearch =
-        !search ||
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.country.toLowerCase().includes(search.toLowerCase()) ||
-        c.description.toLowerCase().includes(search.toLowerCase());
-      const matchesRegion =
-        selectedRegion === 'all' || c.region.toLowerCase().includes(selectedRegion.toLowerCase());
+        !query ||
+        name.includes(query) ||
+        country.includes(query) ||
+        description.includes(query);
+
+      let matchesRegion = true;
+      if (selectedRegion && selectedRegion !== 'all') {
+        const sr = selectedRegion.toLowerCase();
+        matchesRegion =
+          region.includes(sr) ||
+          (sr.includes('asia') && (region.includes('asia') || country.includes('japan') || country.includes('india') || country.includes('thailand') || country.includes('singapore') || country.includes('vietnam') || country.includes('indonesia') || country.includes('china') || country.includes('korea'))) ||
+          (sr.includes('europe') && (region.includes('europe') || country.includes('france') || country.includes('italy') || country.includes('spain') || country.includes('uk') || country.includes('germany') || country.includes('netherlands') || country.includes('switzerland') || country.includes('greece') || country.includes('austria') || country.includes('portugal'))) ||
+          (sr.includes('america') && (region.includes('america') || country.includes('usa') || country.includes('united states') || country.includes('canada') || country.includes('brazil') || country.includes('mexico') || country.includes('argentina') || country.includes('peru'))) ||
+          (sr.includes('middle east') && (region.includes('middle east') || country.includes('uae') || country.includes('dubai') || country.includes('egypt') || country.includes('qatar') || country.includes('turkey') || country.includes('saudi'))) ||
+          (sr.includes('oceania') && (region.includes('oceania') || country.includes('australia') || country.includes('new zealand') || country.includes('fiji')));
+      }
+
       return matchesSearch && matchesRegion;
     })
     .sort((a, b) => {
       if (sortBy === 'popularity-desc') return (b.popularity || 0) - (a.popularity || 0);
       if (sortBy === 'cost-asc') return Number(a.costIndex || 0) - Number(b.costIndex || 0);
       if (sortBy === 'cost-desc') return Number(b.costIndex || 0) - Number(a.costIndex || 0);
-      if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+      if (sortBy === 'name-asc') return (a.name || '').localeCompare(b.name || '');
       return 0;
     });
 
   const filteredActivities = activities
     .filter(a => {
+      const name = (a.name || '').toLowerCase();
+      const description = (a.description || '').toLowerCase();
+      const category = (a.category || '').toUpperCase();
+      const query = (search || '').toLowerCase().trim();
+
       const matchesSearch =
-        !search ||
-        a.name.toLowerCase().includes(search.toLowerCase()) ||
-        a.description.toLowerCase().includes(search.toLowerCase());
+        !query ||
+        name.includes(query) ||
+        description.includes(query);
+
       const matchesCategory =
-        selectedCategory === 'all' || a.category.toUpperCase() === selectedCategory.toUpperCase();
+        selectedCategory === 'all' || category === selectedCategory.toUpperCase();
       const matchesCost = (a.estimatedCost || 0) <= maxCostFilter;
       return matchesSearch && matchesCategory && matchesCost;
     })
@@ -109,7 +132,7 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
       if (sortBy === 'rating-desc' || sortBy === 'popularity-desc') return (b.rating || 0) - (a.rating || 0);
       if (sortBy === 'cost-asc') return (a.estimatedCost || 0) - (b.estimatedCost || 0);
       if (sortBy === 'cost-desc') return (b.estimatedCost || 0) - (a.estimatedCost || 0);
-      if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+      if (sortBy === 'name-asc') return (a.name || '').localeCompare(b.name || '');
       return 0;
     });
 
@@ -131,7 +154,7 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
           background: '#ffffff',
           borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border-silver)',
-          padding: '1.15rem 1.35rem',
+          padding: '1rem 1.25rem',
           marginBottom: '2rem',
           display: 'flex',
           justifyContent: 'space-between',
@@ -142,7 +165,7 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
         }}
       >
         {/* Toggle Mode */}
-        <div style={{ display: 'flex', gap: '0.35rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => setActiveTab('cities')}
             style={{
@@ -153,7 +176,8 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
               color: activeTab === 'cities' ? '#ffffff' : 'var(--text-secondary)',
               fontWeight: activeTab === 'cities' ? 800 : 600,
               fontSize: '0.88rem',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
             }}
           >
             🏙️ Destination Cities ({cities.length})
@@ -168,22 +192,23 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
               color: activeTab === 'activities' ? '#ffffff' : 'var(--text-secondary)',
               fontWeight: activeTab === 'activities' ? 800 : 600,
               fontSize: '0.88rem',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
             }}
           >
             🎟️ Activities & Attractions ({activities.length})
           </button>
         </div>
 
-        {/* Search input */}
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div className="input-with-icon" style={{ width: '240px' }}>
+        {/* Search & Filters Group */}
+        <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
+          <div className="input-with-icon" style={{ width: '220px', minWidth: '180px' }}>
             <Search className="input-icon-left" size={16} />
             <input
               type="text"
               className="form-input"
-              style={{ padding: '0.5rem 0.85rem 0.5rem 2.2rem', fontSize: '0.85rem' }}
-              placeholder={activeTab === 'cities' ? 'Search cities or countries...' : 'Search attractions...'}
+              style={{ width: '100%', padding: '0.5rem 0.85rem 0.5rem 2.2rem', fontSize: '0.85rem' }}
+              placeholder={activeTab === 'cities' ? 'Search cities, countries...' : 'Search attractions...'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -193,21 +218,21 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
             <>
               <select
                 className="form-input"
-                style={{ padding: '0.5rem 0.85rem', fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ width: 'auto', minWidth: '140px', padding: '0.5rem 0.85rem', fontSize: '0.85rem', cursor: 'pointer' }}
                 value={selectedRegion}
                 onChange={(e) => setSelectedRegion(e.target.value)}
               >
                 <option value="all">All Regions</option>
                 <option value="Asia">Asia & Pacific</option>
                 <option value="Europe">Europe</option>
-                <option value="North America">North America</option>
+                <option value="Americas">Americas</option>
                 <option value="Middle East">Middle East</option>
                 <option value="Oceania">Oceania</option>
               </select>
 
               <select
                 className="form-input"
-                style={{ padding: '0.5rem 0.85rem', fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ width: 'auto', minWidth: '160px', padding: '0.5rem 0.85rem', fontSize: '0.85rem', cursor: 'pointer' }}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -221,7 +246,7 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
             <>
               <select
                 className="form-input"
-                style={{ padding: '0.5rem 0.85rem', fontSize: '0.85rem', cursor: 'pointer' }}
+                style={{ width: 'auto', minWidth: '140px', padding: '0.5rem 0.85rem', fontSize: '0.85rem', cursor: 'pointer' }}
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
               >
@@ -234,11 +259,11 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
                 <option value="NIGHTLIFE">Nightlife</option>
               </select>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Max:</span>
                 <select
                   className="form-input"
-                  style={{ padding: '0.5rem 0.65rem', fontSize: '0.85rem', cursor: 'pointer' }}
+                  style={{ width: 'auto', minWidth: '100px', padding: '0.5rem 0.65rem', fontSize: '0.85rem', cursor: 'pointer' }}
                   value={maxCostFilter}
                   onChange={(e) => setMaxCostFilter(Number(e.target.value))}
                 >
@@ -259,9 +284,19 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
         /* Cities Grid */
         <div>
           {filteredCities.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', background: '#ffffff', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--border-silver)' }}>
+            <div style={{ textAlign: 'center', padding: '3rem 2rem', background: '#ffffff', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--border-silver)' }}>
               <MapPin size={36} color="var(--primary-flare)" style={{ margin: '0 auto 0.75rem auto' }} />
-              <p style={{ color: 'var(--text-secondary)' }}>No cities found matching "{search}".</p>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>No Destinations Found</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '1.25rem' }}>
+                No cities matched the selected filter {selectedRegion !== 'all' ? `in region "${selectedRegion}"` : ''} {search ? `with keyword "${search}"` : ''}.
+              </p>
+              <button
+                onClick={() => { setSearch(''); setSelectedRegion('all'); }}
+                className="btn-secondary"
+                style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}
+              >
+                Clear All Filters
+              </button>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
