@@ -17,7 +17,7 @@ const CARTOON_AVATARS = [
 ];
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSuccess }) => {
-  const { login, quickLogin } = useAuth();
+  const { login } = useAuth();
   const [role, setRole] = useState<UserRole>('traveler');
   const [selectedAvatar, setSelectedAvatar] = useState<string>(CARTOON_AVATARS[0].url);
   const [email, setEmail] = useState('');
@@ -56,18 +56,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
     }
   };
 
-  const handleDemoLogin = async (type: 'traveler' | 'admin') => {
-    setLoading(true);
+  // Auto-fill credentials without auto-submitting (user clicks Sign In manually)
+  const handleAutoFill = (type: 'traveler' | 'admin') => {
     setError('');
-    try {
-      const ok = await quickLogin(type);
-      if (ok && onSuccess) {
-        onSuccess();
-      }
-    } catch (err: any) {
-      setError(err.message || 'Demo login failed. Please check if the backend server is running.');
-    } finally {
-      setLoading(false);
+    if (type === 'traveler') {
+      setRole('traveler');
+      setEmail('traveler@pathpilot.com');
+      setPassword('Password123!');
+      setSelectedAvatar(CARTOON_AVATARS[0].url);
+    } else {
+      setRole('admin');
+      setEmail('admin@pathpilot.com');
+      setPassword('AdminPassword123!');
     }
   };
 
@@ -93,10 +93,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
 
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em' }}>
-            Welcome Back
+            {role === 'admin' ? 'Admin Portal' : 'Welcome Back'}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.15rem' }}>
-            Sign in to manage your multi-city journeys
+            {role === 'admin' ? 'Sign in to access platform governance' : 'Sign in to manage your multi-city journeys'}
           </p>
         </div>
       </div>
@@ -116,11 +116,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
         <button
           type="button"
           className={`role-tab-btn ${role === 'traveler' ? 'active' : ''}`}
-          onClick={() => {
-            setRole('traveler');
-            setEmail('traveler@pathpilot.com');
-            setPassword('Password123!');
-          }}
+          onClick={() => handleAutoFill('traveler')}
           style={{ padding: '0.5rem 0.85rem', fontSize: '0.85rem' }}
         >
           <Compass size={15} />
@@ -129,11 +125,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
         <button
           type="button"
           className={`role-tab-btn ${role === 'admin' ? 'active' : ''}`}
-          onClick={() => {
-            setRole('admin');
-            setEmail('admin@pathpilot.com');
-            setPassword('AdminPassword123!');
-          }}
+          onClick={() => handleAutoFill('admin')}
           style={{ padding: '0.5rem 0.85rem', fontSize: '0.85rem' }}
         >
           <Shield size={15} />
@@ -191,7 +183,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
         </div>
       )}
 
-      {/* 1-Click Instant Demo Login */}
+      {/* 1-Click Auto-Fill Demo Credentials (Requires Manual Sign In Click) */}
       <div
         style={{
           background: 'rgba(96, 168, 192, 0.1)',
@@ -215,28 +207,28 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onSucc
           }}
         >
           <Sparkles size={12} />
-          <span>Instant 1-Click Test Access</span>
+          <span>Auto-Fill Demo Credentials</span>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             type="button"
             className="demo-btn"
             disabled={loading}
-            onClick={() => handleDemoLogin('traveler')}
+            onClick={() => handleAutoFill('traveler')}
             style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
           >
             <Compass size={13} />
-            <span>Log in as Traveler</span>
+            <span>Fill Traveler</span>
           </button>
           <button
             type="button"
             className="demo-btn"
             disabled={loading}
-            onClick={() => handleDemoLogin('admin')}
+            onClick={() => handleAutoFill('admin')}
             style={{ padding: '0.45rem 0.65rem', fontSize: '0.8rem', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
           >
             <Shield size={13} />
-            <span>Log in as Admin</span>
+            <span>Fill Admin</span>
           </button>
         </div>
       </div>
