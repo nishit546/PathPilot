@@ -1,0 +1,16 @@
+{
+  "name": "pathpilot-database",
+  "version": "1.0.0",
+  "description": "Database migrations, seeds, and schema management for PathPilot",
+  "main": "scripts/migrate.js",
+  "scripts": {
+    "migrate": "node scripts/migrate.js",
+    "seed": "node scripts/seed.js",
+    "validate": "node scripts/validate.js",
+    "db:setup": "node scripts/migrate.js && node scripts/seed.js && node scripts/validate.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "pg": "^8.11.3"
+  }
+}

@@ -1,28 +1,36 @@
 # Dependencies
 node_modules/
 */node_modules/
+.pnp
+.pnp.js
 
-# Environment variables
+# Environment Variables & Secrets
 .env
 .env.local
 .env.*.local
 */.env
+*.env
+!*.env.example
+!*/.env.example
 
 # Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+logs/
 
-# OS Files
+# OS & Editor Files
 .DS_Store
 Thumbs.db
-
-# IDE & Editor files
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# Build & coverage outputs
+# Build & Output Files
 dist/
 build/
 coverage/
+.next/
+out/
