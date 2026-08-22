@@ -22,40 +22,44 @@ export interface User {
 }
 
 export interface City {
-  id: number;
+  id: number | string;
   name: string;
   country: string;
   region: string;
   description: string;
-  imageUrl: string;
-  popularity: number;
-  costIndex: number;
+  imageUrl?: string;
+  image?: string;
+  popularity?: number;
+  popularityScore?: number;
+  costIndex?: number | string;
   activities?: Activity[];
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface Activity {
-  id: number;
-  cityId: number;
+  id: number | string;
+  cityId: number | string;
   name: string;
   description: string;
   category: 'SIGHTSEEING' | 'CULTURE' | 'ADVENTURE' | 'FOOD' | 'NATURE' | 'NIGHTLIFE' | 'SHOPPING' | string;
   estimatedCost: number;
-  durationMinutes: number;
-  imageUrl: string;
+  durationMinutes?: number;
+  durationHours?: number;
+  imageUrl?: string;
+  image?: string;
   rating: number;
   city?: {
-    id: number;
+    id: number | string;
     name: string;
     country: string;
   };
 }
 
 export interface DayActivity {
-  id: number;
-  dayId: number;
-  activityId: number;
+  id: number | string;
+  dayId: number | string;
+  activityId: number | string;
   startTime: string;
   endTime: string;
   customCost: number;
@@ -65,31 +69,35 @@ export interface DayActivity {
 }
 
 export interface TripDay {
-  id: number;
-  sectionId: number;
+  id: number | string;
+  sectionId: number | string;
   dayNumber: number;
   date: string;
   dayActivities?: DayActivity[];
 }
 
 export interface TripSection {
-  id: number;
-  tripId: number;
-  cityId: number;
+  id: number | string;
+  tripId: number | string;
+  cityId: number | string;
+  cityName?: string;
+  country?: string;
   startDate: string;
   endDate: string;
-  budget: number;
+  budget?: number;
+  budgetLimit?: number;
   order: number;
   notes?: string | null;
   city?: City;
   days?: TripDay[];
+  activities?: any[];
 }
 
 export interface TripExpense {
-  id: number;
-  tripId: number;
-  sectionId?: number | null;
-  dayId?: number | null;
+  id: number | string;
+  tripId: number | string;
+  sectionId?: number | string | null;
+  dayId?: number | string | null;
   category: 'TRANSPORT' | 'STAY' | 'ACTIVITIES' | 'MEALS' | 'SHOPPING' | 'OTHER' | string;
   amount: number;
   description: string;
@@ -98,9 +106,9 @@ export interface TripExpense {
 }
 
 export interface Trip {
-  id: number;
-  userId: number;
-  name: string;
+  id: number | string;
+  userId: number | string;
+  name?: string;
   title?: string;
   description?: string;
   startDate: string;
@@ -111,7 +119,7 @@ export interface Trip {
   coverImage?: string | null;
   shareToken?: string | null;
   user?: {
-    id: number;
+    id: number | string;
     firstName: string;
     lastName: string;
     email: string;

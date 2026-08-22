@@ -25,5 +25,12 @@ export const citiesApi = {
     return apiClient<{ city: City }>(`/cities/${id}`, {
       method: 'GET'
     });
+  },
+
+  searchCities: async (query: string): Promise<ApiResponse<City[]>> => {
+    return apiClient<City[]>('/cities/search', {
+      method: 'GET',
+      params: { q: query }
+    });
   }
 };

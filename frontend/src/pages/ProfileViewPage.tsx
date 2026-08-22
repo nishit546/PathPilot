@@ -21,7 +21,7 @@ import {
 
 interface ProfileViewPageProps {
   onViewTrip?: (trip: Trip) => void;
-  onEditItinerary?: (tripId: number) => void;
+  onEditItinerary?: (tripId: number | string) => void;
 }
 
 export const ProfileViewPage: React.FC<ProfileViewPageProps> = ({ onViewTrip, onEditItinerary }) => {

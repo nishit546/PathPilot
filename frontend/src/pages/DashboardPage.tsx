@@ -8,7 +8,7 @@ import { Trip } from '../types';
 
 interface DashboardPageProps {
   onViewTrip?: (trip: Trip) => void;
-  onEditItinerary?: (tripId: number) => void;
+  onEditItinerary?: (tripId: number | string) => void;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onViewTrip, onEditItinerary }) => {

@@ -8,7 +8,7 @@ import { X, Calendar, DollarSign, MapPin, Sparkles, Check, AlertCircle } from 'l
 interface CreateTripModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onTripCreated?: (tripId: number) => void;
+  onTripCreated?: (tripId: number | string) => void;
 }
 
 export const CreateTripModal: React.FC<CreateTripModalProps> = ({
@@ -25,7 +25,7 @@ export const CreateTripModal: React.FC<CreateTripModalProps> = ({
   const [endDate, setEndDate] = useState('');
   const [totalBudget, setTotalBudget] = useState(75000);
   const [visibility, setVisibility] = useState<'PRIVATE' | 'PUBLIC'>('PRIVATE');
-  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  const [selectedCityId, setSelectedCityId] = useState<number | string | null>(null);
 
   const [availableCities, setAvailableCities] = useState<City[]>([]);
   const [citySearch, setCitySearch] = useState('');
@@ -51,12 +51,13 @@ export const CreateTripModal: React.FC<CreateTripModalProps> = ({
     if (isOpen) {
       setIsLoadingCities(true);
       citiesApi
-        .getCities({ limit: 20 })
+        .getCities({ limit: 50 })
         .then(res => {
-          if (res.success && Array.isArray(res.data)) {
-            setAvailableCities(res.data);
-            if (res.data.length > 0 && !selectedCityId) {
-              setSelectedCityId(res.data[0].id);
+          if (res.success) {
+            const list = Array.isArray(res.data) ? res.data : ((res.data as any)?.cities || []);
+            setAvailableCities(list);
+            if (list.length > 0 && !selectedCityId) {
+              setSelectedCityId(list[0].id);
             }
           }
         })

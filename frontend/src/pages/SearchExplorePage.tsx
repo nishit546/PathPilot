@@ -54,6 +54,27 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
       .finally(() => setIsLoading(false));
   }, []);
 
+  // Backend live search debounce
+  useEffect(() => {
+    if (!search || search.trim().length < 2) return;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await citiesApi.searchCities(search.trim());
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setCities(prev => {
+            const map = new Map(prev.map(c => [c.id || c.name, c]));
+            res.data.forEach(c => map.set(c.id || c.name, c));
+            return Array.from(map.values());
+          });
+        }
+      } catch (err) {
+        // Ignore live search background errors
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const filteredCities = cities
     .filter(c => {
       const matchesSearch =
@@ -67,8 +88,8 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
     })
     .sort((a, b) => {
       if (sortBy === 'popularity-desc') return (b.popularity || 0) - (a.popularity || 0);
-      if (sortBy === 'cost-asc') return (a.costIndex || 0) - (b.costIndex || 0);
-      if (sortBy === 'cost-desc') return (b.costIndex || 0) - (a.costIndex || 0);
+      if (sortBy === 'cost-asc') return Number(a.costIndex || 0) - Number(b.costIndex || 0);
+      if (sortBy === 'cost-desc') return Number(b.costIndex || 0) - Number(a.costIndex || 0);
       if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
       return 0;
     });
@@ -444,7 +465,7 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
                       }}
                     >
                       <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        ⏱️ {Math.round(act.durationMinutes / 60)} Hours
+                        ⏱️ {Math.round((act.durationMinutes || (act.durationHours ? act.durationHours * 60 : 120)) / 60)} Hours
                       </span>
                       <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-flare)' }}>
                         ₹{act.estimatedCost?.toLocaleString()}
@@ -533,7 +554,9 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
               </div>
               <div style={{ padding: '0.75rem', background: 'var(--bg-canvas)', borderRadius: 'var(--radius-md)' }}>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block' }}>DURATION</span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>{Math.round(selectedActivityModal.durationMinutes / 60)} hrs</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>
+                  {Math.round((selectedActivityModal.durationMinutes || (selectedActivityModal.durationHours ? selectedActivityModal.durationHours * 60 : 120)) / 60)} hrs
+                </span>
               </div>
               <div style={{ padding: '0.75rem', background: 'var(--bg-canvas)', borderRadius: 'var(--radius-md)' }}>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block' }}>EST. COST</span>

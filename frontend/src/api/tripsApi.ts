@@ -23,6 +23,7 @@ export interface CreateTripPayload {
   totalBudget: number;
   visibility?: 'PRIVATE' | 'PUBLIC';
   coverImage?: string;
+  initialCityId?: number | string;
 }
 
 export interface UpdateTripPayload extends Partial<CreateTripPayload> {
@@ -72,7 +73,7 @@ export const tripsApi = {
 
   createSection: async (
     tripId: number | string,
-    payload: { cityId: number; startDate: string; endDate: string; budget?: number; notes?: string }
+    payload: { cityId: number | string; startDate: string; endDate: string; budget?: number; notes?: string }
   ): Promise<ApiResponse<{ section: TripSection }>> => {
     return apiClient<{ section: TripSection }>(`/trips/${tripId}/sections`, {
       method: 'POST',
@@ -82,7 +83,7 @@ export const tripsApi = {
 
   reorderSections: async (
     tripId: number | string,
-    sectionIds: number[]
+    sectionIds: (number | string)[]
   ): Promise<ApiResponse<{ sections: TripSection[] }>> => {
     return apiClient<{ sections: TripSection[] }>(`/trips/${tripId}/sections/reorder`, {
       method: 'PUT',

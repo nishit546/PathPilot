@@ -44,8 +44,9 @@ export const AdminDashboardPage: React.FC = () => {
       if (analyticsRes.success && analyticsRes.data) {
         setAnalytics(analyticsRes.data);
       }
-      if (usersRes.success && Array.isArray(usersRes.data)) {
-        setUsers(usersRes.data);
+      if (usersRes.success) {
+        const uList = Array.isArray(usersRes.data) ? usersRes.data : ((usersRes.data as any)?.users || []);
+        setUsers(uList);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load admin dashboard. Admin privileges required.');

@@ -87,7 +87,7 @@ interface TravelContextType {
   setStatusFilter: (status: string) => void;
   setIsCreateTripModalOpen: (open: boolean) => void;
 
-  createTrip: (tripData: CreateTripPayload & { initialCityId?: number }) => Promise<Trip>;
+  createTrip: (tripData: CreateTripPayload & { initialCityId?: number | string }) => Promise<Trip>;
   updateTrip: (id: number | string, updates: Partial<Trip>) => Promise<Trip | null>;
   deleteTrip: (id: number | string) => Promise<boolean>;
   getFilteredTrips: () => Trip[];
@@ -123,8 +123,9 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setTripsError(null);
     try {
       const res = await tripsApi.getTrips({ limit: 50 });
-      if (res.success && Array.isArray(res.data)) {
-        setTrips(res.data);
+      if (res.success) {
+        const list = Array.isArray(res.data) ? res.data : ((res.data as any)?.trips || []);
+        setTrips(list);
       }
     } catch (err: any) {
       console.error('Failed to fetch trips:', err);
@@ -142,11 +143,13 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         activitiesApi.getActivities({ limit: 100 })
       ]);
 
-      if (citiesRes.success && Array.isArray(citiesRes.data)) {
-        setCities(citiesRes.data);
+      if (citiesRes.success) {
+        const cList = Array.isArray(citiesRes.data) ? citiesRes.data : ((citiesRes.data as any)?.cities || []);
+        if (cList.length > 0) setCities(cList);
       }
-      if (activitiesRes.success && Array.isArray(activitiesRes.data)) {
-        setActivities(activitiesRes.data);
+      if (activitiesRes.success) {
+        const aList = Array.isArray(activitiesRes.data) ? activitiesRes.data : ((activitiesRes.data as any)?.activities || []);
+        if (aList.length > 0) setActivities(aList);
       }
     } catch (err) {
       console.warn('Catalog fetch notice:', err);
@@ -169,7 +172,7 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [isAuthenticated, fetchTrips]);
 
   const createTrip = async (
-    tripData: CreateTripPayload & { initialCityId?: number }
+    tripData: CreateTripPayload & { initialCityId?: number | string }
   ): Promise<Trip> => {
     const { initialCityId, ...createPayload } = tripData;
     
@@ -184,7 +187,7 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (initialCityId) {
       try {
         await tripsApi.createSection(created.id, {
-          cityId: Number(initialCityId),
+          cityId: initialCityId as any,
           startDate: created.startDate,
           endDate: created.endDate,
           budget: created.totalBudget
@@ -217,8 +220,8 @@ export const TravelProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const res = await tripsApi.deleteTrip(id);
       if (res.success) {
-        setTrips(prev => prev.filter(t => t.id !== Number(id)));
-        if (activeTrip?.id === Number(id)) setActiveTrip(null);
+        setTrips(prev => prev.filter(t => String(t.id) !== String(id)));
+        if (activeTrip && String(activeTrip.id) === String(id)) setActiveTrip(null);
         return true;
       }
     } catch (err) {

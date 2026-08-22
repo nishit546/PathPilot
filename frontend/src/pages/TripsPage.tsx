@@ -20,7 +20,7 @@ import {
 
 interface TripsPageProps {
   onViewTrip: (trip: Trip) => void;
-  onEditItinerary: (tripId: number) => void;
+  onEditItinerary: (tripId: number | string) => void;
   onPlanNewTrip: () => void;
 }
 
@@ -44,11 +44,11 @@ export const TripsPage: React.FC<TripsPageProps> = ({
     getFilteredTrips
   } = useTravel();
 
-  const [deletingTripId, setDeletingTripId] = useState<number | null>(null);
+  const [deletingTripId, setDeletingTripId] = useState<number | string | null>(null);
 
   const filteredTrips = getFilteredTrips();
 
-  const handleDelete = async (e: React.MouseEvent, tripId: number) => {
+  const handleDelete = async (e: React.MouseEvent, tripId: number | string) => {
     e.stopPropagation();
     if (!window.confirm('Are you sure you want to delete this trip itinerary?')) return;
     setDeletingTripId(tripId);

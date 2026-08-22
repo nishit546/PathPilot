@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 interface CommunityFeedPageProps {
-  onForkTripSuccess?: (newTripId: number) => void;
+  onForkTripSuccess?: (newTripId: number | string) => void;
 }
 
 export const CommunityFeedPage: React.FC<CommunityFeedPageProps> = ({ onForkTripSuccess }) => {
@@ -50,8 +50,9 @@ export const CommunityFeedPage: React.FC<CommunityFeedPageProps> = ({ onForkTrip
     communityApi
       .getPosts({ limit: 30, search: search || undefined })
       .then(res => {
-        if (res.success && Array.isArray(res.data)) {
-          setPosts(res.data);
+        if (res.success) {
+          const list = Array.isArray(res.data) ? res.data : ((res.data as any)?.posts || []);
+          setPosts(list);
         }
       })
       .finally(() => setIsLoading(false));

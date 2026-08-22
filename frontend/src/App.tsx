@@ -21,7 +21,7 @@ const MainAppContent: React.FC = () => {
   const { isCreateTripModalOpen, setIsCreateTripModalOpen } = useTravel();
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [selectedTripId, setSelectedTripId] = useState<number | string | null>(null);
 
   if (isLoading) {
     return <PageLoader message="Verifying PathPilot session..." />;
@@ -32,16 +32,16 @@ const MainAppContent: React.FC = () => {
   }
 
   const handleViewTrip = (trip: Trip) => {
-    setSelectedTripId(Number(trip.id));
+    setSelectedTripId(trip.id);
     setActiveTab('trip-details');
   };
 
-  const handleEditItinerary = (tripId: number) => {
+  const handleEditItinerary = (tripId: number | string) => {
     setSelectedTripId(tripId);
     setActiveTab('itinerary');
   };
 
-  const handleTripCreated = (newTripId: number) => {
+  const handleTripCreated = (newTripId: number | string) => {
     setSelectedTripId(newTripId);
     setActiveTab('itinerary');
   };

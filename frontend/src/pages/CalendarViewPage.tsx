@@ -9,7 +9,7 @@ interface CalendarViewPageProps {
 }
 
 export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({ onViewTrip }) => {
-  const [currentDate, setCurrentDate] = useState<Date>(new Date(2026, 11, 1)); // Default Dec 2026 where seed trips exist
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -21,8 +21,11 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({ onViewTrip }
     calendarApi
       .getCalendar({ month, year })
       .then(res => {
-        if (res.success && res.data?.trips) {
-          setTrips(res.data.trips);
+        if (res.success && res.data) {
+          const list = Array.isArray(res.data)
+            ? res.data
+            : (res.data.trips || res.data.events || []);
+          setTrips(list);
         }
       })
       .catch(err => console.warn('Calendar fetch:', err))

@@ -9,8 +9,8 @@ export interface GetCalendarParams {
 }
 
 export const calendarApi = {
-  getCalendar: async (params?: GetCalendarParams): Promise<ApiResponse<{ trips: Trip[]; totalTrips: number }>> => {
-    return apiClient<{ trips: Trip[]; totalTrips: number }>('/calendar', {
+  getCalendar: async (params?: GetCalendarParams): Promise<ApiResponse<{ trips?: Trip[]; events?: any[]; totalTrips?: number }>> => {
+    return apiClient<{ trips?: Trip[]; events?: any[]; totalTrips?: number }>('/calendar', {
       method: 'GET',
       params
     });

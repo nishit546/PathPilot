@@ -15,7 +15,7 @@ export interface GetActivitiesParams {
 }
 
 export interface AssignDayActivityPayload {
-  activityId: number;
+  activityId: number | string;
   startTime: string;
   endTime: string;
   customCost?: number;

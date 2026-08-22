@@ -24,9 +24,9 @@ import {
 } from 'lucide-react';
 
 interface ItineraryBuilderPageProps {
-  tripId: number;
+  tripId: number | string;
   onBack: () => void;
-  onViewTripDetails: (tripId: number) => void;
+  onViewTripDetails: (tripId: number | string) => void;
 }
 
 export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
@@ -43,7 +43,7 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
 
   // Add Section Modal state
   const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
-  const [sectionCityId, setSectionCityId] = useState<number | null>(null);
+  const [sectionCityId, setSectionCityId] = useState<number | string | null>(null);
   const [sectionStartDate, setSectionStartDate] = useState('');
   const [sectionEndDate, setSectionEndDate] = useState('');
   const [sectionBudget, setSectionBudget] = useState(30000);
@@ -53,8 +53,8 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
 
   // Add Activity Modal state
   const [isAddActivityOpen, setIsAddActivityOpen] = useState(false);
-  const [targetDay, setTargetDay] = useState<{ dayId: number; dayNumber: number; date: string } | null>(null);
-  const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null);
+  const [targetDay, setTargetDay] = useState<{ dayId: number | string; dayNumber: number; date: string } | null>(null);
+  const [selectedActivityId, setSelectedActivityId] = useState<number | string | null>(null);
   const [activityStartTime, setActivityStartTime] = useState('10:00');
   const [activityEndTime, setActivityEndTime] = useState('13:00');
   const [activityCost, setActivityCost] = useState<number>(2500);
@@ -80,11 +80,13 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
         setError('Trip not found or access denied.');
       }
 
-      if (citiesRes.success && Array.isArray(citiesRes.data)) {
-        setAvailableCities(citiesRes.data);
+      if (citiesRes.success) {
+        const cList = Array.isArray(citiesRes.data) ? citiesRes.data : ((citiesRes.data as any)?.cities || []);
+        setAvailableCities(cList);
       }
-      if (activitiesRes.success && Array.isArray(activitiesRes.data)) {
-        setAvailableActivities(activitiesRes.data);
+      if (activitiesRes.success) {
+        const aList = Array.isArray(activitiesRes.data) ? activitiesRes.data : ((activitiesRes.data as any)?.activities || []);
+        setAvailableActivities(aList);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load itinerary.');
@@ -148,7 +150,7 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
   };
 
   // Delete Section
-  const handleDeleteSection = async (sectionId: number) => {
+  const handleDeleteSection = async (sectionId: number | string) => {
     if (!window.confirm('Are you sure you want to remove this stop and all scheduled activities for it?')) return;
 
     try {
@@ -207,7 +209,7 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
   };
 
   // Delete Day Activity
-  const handleDeleteActivity = async (dayActivityId: number) => {
+  const handleDeleteActivity = async (dayActivityId: number | string) => {
     try {
       await activitiesApi.deleteDayActivity(dayActivityId);
       await loadTripData();

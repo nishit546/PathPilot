@@ -5,7 +5,7 @@ import { Calendar, MapPin, DollarSign, ArrowRight, Trash2, Plus, Compass } from 
 
 interface PreviousTripsGridProps {
   onViewTrip?: (trip: Trip) => void;
-  onEditItinerary?: (tripId: number) => void;
+  onEditItinerary?: (tripId: number | string) => void;
 }
 
 export const PreviousTripsGrid: React.FC<PreviousTripsGridProps> = ({ onViewTrip, onEditItinerary }) => {

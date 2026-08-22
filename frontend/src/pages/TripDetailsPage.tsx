@@ -23,9 +23,9 @@ import {
 } from 'lucide-react';
 
 interface TripDetailsPageProps {
-  tripId: number;
+  tripId: number | string;
   onBack: () => void;
-  onEditItinerary: (tripId: number) => void;
+  onEditItinerary: (tripId: number | string) => void;
 }
 
 export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
@@ -70,8 +70,11 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
         setError('Trip not found or access denied.');
       }
 
-      if (expensesRes.success && Array.isArray(expensesRes.data?.expenses)) {
-        setExpenses(expensesRes.data.expenses);
+      if (expensesRes.success) {
+        const expList = Array.isArray(expensesRes.data)
+          ? expensesRes.data
+          : (expensesRes.data?.expenses || []);
+        setExpenses(expList);
       }
       if (budgetRes.success && budgetRes.data) {
         setBudget(budgetRes.data);
@@ -113,7 +116,7 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
   };
 
   // Handle Delete Expense
-  const handleDeleteExpense = async (expenseId: number) => {
+  const handleDeleteExpense = async (expenseId: number | string) => {
     try {
       await expensesApi.deleteExpense(expenseId);
       await loadAllTripData();
