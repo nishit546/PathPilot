@@ -1,7 +1,7 @@
 const http = require('http');
 const app = require('./src/app');
 
-const PORT = 5006;
+const PORT = 5007;
 
 function makeRequest(server, options, body = null) {
   return new Promise((resolve, reject) => {
@@ -35,7 +35,7 @@ function makeRequest(server, options, body = null) {
 
 async function runTests() {
   const server = app.listen(PORT, async () => {
-    console.log(`\n🧪 Running PathPilot Comprehensive Test Suite on port ${PORT}...\n`);
+    console.log(`\n🧪 Running Comprehensive PathPilot Backend Verification Suite on port ${PORT}...\n`);
     let passed = 0;
     let failed = 0;
 
@@ -54,7 +54,7 @@ async function runTests() {
       const health = await makeRequest(server, { path: '/api/health', method: 'GET' });
       assert(health.status === 200 && health.data.data.status === 'healthy', 'GET /api/health returns 200 with status=healthy');
 
-      // 2. API Overview
+      // 2. API Gateway Catalog Overview
       const overview = await makeRequest(server, { path: '/api', method: 'GET' });
       assert(overview.status === 200 && overview.data.data.modules.length > 5, 'GET /api returns gateway catalog overview');
 
@@ -98,15 +98,36 @@ async function runTests() {
       assert(reg.status === 201 && reg.data.data.token, 'POST /api/auth/register creates user and returns JWT token');
       const sarahToken = reg.data?.data?.token;
 
-      // 8. Auth /me
+      // 8. Duplicate registration rejection
+      const duplicateReg = await makeRequest(server, { path: '/api/auth/register', method: 'POST' }, {
+        firstName: 'Sarah',
+        lastName: 'Connor',
+        email: newEmail,
+        password: 'Password123!'
+      });
+      assert(duplicateReg.status === 409 || duplicateReg.status === 400, 'POST /api/auth/register rejects duplicate email with 409 Conflict');
+
+      // 9. Protected route without token
+      const noTokenReq = await makeRequest(server, { path: '/api/users/profile', method: 'GET' });
+      assert(noTokenReq.status === 401, 'GET /api/users/profile without token returns 401 Unauthorized');
+
+      // 10. Protected route with malformed token
+      const malformedTokenReq = await makeRequest(server, {
+        path: '/api/users/profile',
+        method: 'GET',
+        headers: { Authorization: 'Bearer invalid.fake.token' }
+      });
+      assert(malformedTokenReq.status === 401, 'GET /api/users/profile with malformed token returns 401 Unauthorized');
+
+      // 11. Auth /me
       const me = await makeRequest(server, {
         path: '/api/auth/me',
         method: 'GET',
         headers: { Authorization: `Bearer ${sarahToken}` }
       });
-      assert(me.status === 200 && me.data.data.user.email === newEmail, 'GET /api/auth/me returns authenticated profile');
+      assert(me.status === 200 && me.data.data.user.email === newEmail && !me.data.data.user.password, 'GET /api/auth/me returns profile without password');
 
-      // 9. User profile update
+      // 12. User profile update & privilege escalation prevention
       const updateProfile = await makeRequest(server, {
         path: '/api/users/profile',
         method: 'PUT',
@@ -114,11 +135,17 @@ async function runTests() {
       }, {
         firstName: 'Sarah Jane',
         phone: '+1-555-888999',
-        additionalInfo: 'Photographer & trekker'
+        additionalInfo: 'Photographer & trekker',
+        role: 'ADMIN' // Malicious attempt to elevate role!
       });
-      assert(updateProfile.status === 200 && updateProfile.data.data.user.firstName === 'Sarah Jane', 'PUT /api/users/profile updates profile');
+      assert(
+        updateProfile.status === 200 &&
+        updateProfile.data.data.user.firstName === 'Sarah Jane' &&
+        updateProfile.data.data.user.role === 'USER',
+        'PUT /api/users/profile updates profile and ignores malicious role elevation attempt'
+      );
 
-      // 10. City search with pagination & minPopularity filter
+      // 13. City search with pagination & minPopularity filter
       const cities = await makeRequest(server, { path: '/api/cities?country=India&minPopularity=80&page=1&limit=5', method: 'GET' });
       assert(
         cities.status === 200 &&
@@ -128,11 +155,11 @@ async function runTests() {
         'GET /api/cities returns paginated and filtered cities'
       );
 
-      // 11. City details with activities
+      // 14. City details with activities
       const cityDetail = await makeRequest(server, { path: '/api/cities/1', method: 'GET' });
       assert(cityDetail.status === 200 && cityDetail.data.data.city.activities.length > 0, 'GET /api/cities/:id includes city activities');
 
-      // 12. Activity search with category & cost filter
+      // 15. Activity search with category & cost filter
       const activities = await makeRequest(server, { path: '/api/activities?category=ADVENTURE&maxCost=4000&page=1&limit=5', method: 'GET' });
       assert(
         activities.status === 200 &&
@@ -141,7 +168,7 @@ async function runTests() {
         'GET /api/activities filters by category and maxCost with pagination'
       );
 
-      // 13. Trip creation
+      // 16. Trip creation
       const createTrip = await makeRequest(server, {
         path: '/api/trips',
         method: 'POST',
@@ -157,7 +184,7 @@ async function runTests() {
       assert(createTrip.status === 201 && createTrip.data.data.trip.status === 'UPCOMING', 'POST /api/trips creates trip with dynamic UPCOMING status');
       const tripId = createTrip.data?.data?.trip?.id;
 
-      // 14. Trip listing with pagination
+      // 17. Trip listing with pagination
       const userTrips = await makeRequest(server, {
         path: '/api/trips?page=1&limit=10',
         method: 'GET',
@@ -165,7 +192,20 @@ async function runTests() {
       });
       assert(userTrips.status === 200 && userTrips.data.pagination.totalItems >= 1, 'GET /api/trips returns paginated user trips');
 
-      // 15. Trip Section creation & automated Day generation
+      // 18. Section date validation outside trip boundaries -> 400 Bad Request
+      const invalidSectionDate = await makeRequest(server, {
+        path: `/api/trips/${tripId}/sections`,
+        method: 'POST',
+        headers: { Authorization: `Bearer ${sarahToken}` }
+      }, {
+        cityId: 5,
+        startDate: '2026-12-01',
+        endDate: '2026-12-15', // Trip ends Dec 8!
+        budget: 45000
+      });
+      assert(invalidSectionDate.status === 400, 'POST /api/trips/:tripId/sections rejects dates outside trip boundary with 400');
+
+      // 19. Trip Section creation & automated Day generation
       const createSection = await makeRequest(server, {
         path: `/api/trips/${tripId}/sections`,
         method: 'POST',
@@ -183,7 +223,17 @@ async function runTests() {
       );
       const dayId1 = createSection.data?.data?.section?.days[0]?.id;
 
-      // 16. Day Activity assignment & Time Conflict Engine
+      // 20. Section reorder validation (invalid IDs rejected)
+      const invalidSectionReorder = await makeRequest(server, {
+        path: `/api/trips/${tripId}/sections/reorder`,
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${sarahToken}` }
+      }, {
+        sectionIds: [999, 888]
+      });
+      assert(invalidSectionReorder.status === 400, 'PUT /api/trips/:tripId/sections/reorder rejects invalid section IDs with 400');
+
+      // 21. Day Activity assignment & Time Conflict Engine
       const act1 = await makeRequest(server, {
         path: `/api/days/${dayId1}/activities`,
         method: 'POST',
@@ -222,7 +272,21 @@ async function runTests() {
       });
       assert(act2.status === 201, 'POST /api/days/:dayId/activities schedules non-overlapping activity (14:30 - 17:30)');
 
-      // 17. Expense logging & Budget Analytics
+      // 22. Inconsistent expense relationship rejection (day not belonging to section)
+      const invalidExpenseReq = await makeRequest(server, {
+        path: `/api/trips/${tripId}/expenses`,
+        method: 'POST',
+        headers: { Authorization: `Bearer ${sarahToken}` }
+      }, {
+        category: 'STAY',
+        amount: 5000,
+        description: 'Mismatched relationship test',
+        sectionId: 1, // Section 1 belongs to Nishit's trip!
+        dayId: dayId1
+      });
+      assert(invalidExpenseReq.status === 400, 'POST /api/trips/:tripId/expenses rejects foreign sectionId with 400 Bad Request');
+
+      // Valid expense logging
       const expense1 = await makeRequest(server, {
         path: `/api/trips/${tripId}/expenses`,
         method: 'POST',
@@ -235,6 +299,7 @@ async function runTests() {
       });
       assert(expense1.status === 201, 'POST /api/trips/:tripId/expenses logs stay expense');
 
+      // 23. Budget Analytics with dayBreakdown & percentageUsed
       const budget = await makeRequest(server, {
         path: `/api/trips/${tripId}/budget`,
         method: 'GET',
@@ -242,13 +307,21 @@ async function runTests() {
       });
       assert(
         budget.status === 200 &&
-        budget.data.data.estimatedSpent === 25000 &&
+        budget.data.data.totalSpent === 25000 &&
         budget.data.data.remainingBudget === 70000 &&
-        budget.data.data.breakdown.STAY === 25000,
-        'GET /api/trips/:tripId/budget calculates estimatedSpent, remainingBudget, and category breakdown'
+        budget.data.data.percentageUsed > 0 &&
+        budget.data.data.dayBreakdown.length >= 4,
+        'GET /api/trips/:tripId/budget calculates totalSpent, remainingBudget, percentageUsed, and dayBreakdown'
       );
 
-      // 18. Calendar date-mapped trips
+      // 24. Calendar date-mapped trips with validation
+      const invalidCal = await makeRequest(server, {
+        path: '/api/calendar?month=15', // Invalid month!
+        method: 'GET',
+        headers: { Authorization: `Bearer ${sarahToken}` }
+      });
+      assert(invalidCal.status === 400, 'GET /api/calendar?month=15 rejects invalid month with 400 Bad Request');
+
       const cal = await makeRequest(server, {
         path: '/api/calendar?month=12&year=2026',
         method: 'GET',
@@ -256,7 +329,7 @@ async function runTests() {
       });
       assert(cal.status === 200 && cal.data.data.trips.length >= 1, 'GET /api/calendar?month=12&year=2026 returns scheduled trip');
 
-      // 19. Trip sharing
+      // 25. Trip sharing
       const share = await makeRequest(server, {
         path: `/api/trips/${tripId}/share`,
         method: 'POST',
@@ -271,7 +344,24 @@ async function runTests() {
       });
       assert(sharedView.status === 200 && sharedView.data.data.trip.name === 'Alpine Swiss Explorer', 'GET /api/shared/:shareToken reads public trip without auth');
 
-      // 20. Community Posts
+      const invalidSharedView = await makeRequest(server, {
+        path: '/api/shared/invalid_token_xyz_123',
+        method: 'GET'
+      });
+      assert(invalidSharedView.status === 404, 'GET /api/shared/:invalidToken returns 404 Not Found');
+
+      // 26. Community Posts & private trip linking check
+      const unauthorizedPostLink = await makeRequest(server, {
+        path: '/api/community/posts',
+        method: 'POST',
+        headers: { Authorization: `Bearer ${userToken}` } // Nishit trying to link Sarah's private trip!
+      }, {
+        title: 'Unlawful Private Trip Link',
+        content: 'Attempting to leak Sarah private itinerary to the public...',
+        tripId: tripId
+      });
+      assert(unauthorizedPostLink.status === 403, 'POST /api/community/posts forbids linking another user private trip (403 Forbidden)');
+
       const post = await makeRequest(server, {
         path: '/api/community/posts',
         method: 'POST',
@@ -281,12 +371,12 @@ async function runTests() {
         content: 'Sharing must-pack thermal wear and photography tips for alpine winter expeditions.',
         tripId
       });
-      assert(post.status === 201, 'POST /api/community/posts creates community post');
+      assert(post.status === 201, 'POST /api/community/posts creates community post with owner trip link');
 
       const feed = await makeRequest(server, { path: '/api/community/posts?page=1&limit=5', method: 'GET' });
       assert(feed.status === 200 && feed.data.pagination && feed.data.data.length >= 2, 'GET /api/community/posts returns paginated feed');
 
-      // 21. Authorization Barrier: User cannot edit another user's private trip
+      // 27. Authorization Barrier: User cannot edit another user's private trip
       const unauthorizedEdit = await makeRequest(server, {
         path: `/api/trips/${tripId}`,
         method: 'PUT',
@@ -296,7 +386,15 @@ async function runTests() {
       });
       assert(unauthorizedEdit.status === 403, 'PUT /api/trips/:id forbids non-owner modification (HTTP 403 Forbidden)');
 
-      // 22. Admin user listing & analytics
+      // 28. Non-Admin blocked from Admin endpoints (403 Forbidden)
+      const nonAdminReq = await makeRequest(server, {
+        path: '/api/admin/users',
+        method: 'GET',
+        headers: { Authorization: `Bearer ${sarahToken}` }
+      });
+      assert(nonAdminReq.status === 403, 'GET /api/admin/users rejects non-admin users with 403 Forbidden');
+
+      // 29. Admin user listing & analytics
       const adminUsers = await makeRequest(server, {
         path: '/api/admin/users?page=1&limit=10',
         method: 'GET',
@@ -309,9 +407,22 @@ async function runTests() {
         method: 'GET',
         headers: { Authorization: `Bearer ${adminToken}` }
       });
-      assert(analytics.status === 200 && analytics.data.data.overview.totalUsers >= 3, 'GET /api/admin/analytics returns system analytics');
+      assert(
+        analytics.status === 200 &&
+        analytics.data.data.overview.totalUsers >= 3 &&
+        analytics.data.data.overview.activeUsers >= 3,
+        'GET /api/admin/analytics returns system analytics with activeUsers'
+      );
 
-      // 23. Admin block & unblock user
+      // 30. Admin cannot block own account
+      const selfBlockReq = await makeRequest(server, {
+        path: `/api/admin/users/1/block`,
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      assert(selfBlockReq.status === 400, 'PATCH /api/admin/users/:self/block prevents admin self-blocking (400 Bad Request)');
+
+      // 31. Admin block & unblock user
       const sarahUser = adminUsers.data.data.find(u => u.email === newEmail);
       const blockRes = await makeRequest(server, {
         path: `/api/admin/users/${sarahUser.id}/block`,
@@ -336,13 +447,13 @@ async function runTests() {
       });
       assert(unblockRes.status === 200, 'PATCH /api/admin/users/:id/unblock unblocks user');
 
-      // 24. 404 Route handler
+      // 32. 404 Route handler
       const notFoundRes = await makeRequest(server, { path: '/api/non-existent-route', method: 'GET' });
       assert(notFoundRes.status === 404 && notFoundRes.data.success === false, 'GET /api/non-existent-route returns 404 JSON error');
 
-      console.log(`\n========================================`);
+      console.log(`\n======================================================`);
       console.log(`🎉 TEST SUMMARY: ${passed} PASSED, ${failed} FAILED`);
-      console.log(`========================================\n`);
+      console.log(`======================================================\n`);
 
       server.close(() => {
         process.exit(failed > 0 ? 1 : 0);

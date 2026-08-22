@@ -40,6 +40,9 @@ class ExpenseService {
       if (!day || day.tripId !== trip.id) {
         throw ApiError.badRequest('The specified day does not belong to this trip.');
       }
+      if (data.sectionId && day.sectionId !== Number(data.sectionId)) {
+        throw ApiError.badRequest('The specified day does not belong to the specified section.');
+      }
     }
 
     const created = await expenseRepository.create({
@@ -61,17 +64,23 @@ class ExpenseService {
       throw ApiError.forbidden('You do not have permission to edit this expense.');
     }
 
-    if (data.sectionId) {
-      const section = await tripSectionRepository.findById(data.sectionId);
+    const targetSectionId = data.sectionId !== undefined ? data.sectionId : expense.sectionId;
+    const targetDayId = data.dayId !== undefined ? data.dayId : expense.dayId;
+
+    if (targetSectionId) {
+      const section = await tripSectionRepository.findById(targetSectionId);
       if (!section || section.tripId !== trip.id) {
         throw ApiError.badRequest('The specified section does not belong to this trip.');
       }
     }
 
-    if (data.dayId) {
-      const day = await dayRepository.findById(data.dayId);
+    if (targetDayId) {
+      const day = await dayRepository.findById(targetDayId);
       if (!day || day.tripId !== trip.id) {
         throw ApiError.badRequest('The specified day does not belong to this trip.');
+      }
+      if (targetSectionId && day.sectionId !== Number(targetSectionId)) {
+        throw ApiError.badRequest('The specified day does not belong to the specified section.');
       }
     }
 

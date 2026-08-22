@@ -236,6 +236,19 @@ class ItineraryService {
       throw ApiError.forbidden('You do not have permission to reorder sections for this trip.');
     }
 
+    const existing = await tripSectionRepository.findByTripId(trip.id);
+    const existingIds = existing.map(s => s.id);
+
+    // Validate that all sectionIds match existing section IDs without duplicates
+    const uniqueIds = new Set(sectionIds.map(Number));
+    if (
+      uniqueIds.size !== sectionIds.length ||
+      sectionIds.length !== existingIds.length ||
+      !sectionIds.every(id => existingIds.includes(Number(id)))
+    ) {
+      throw ApiError.badRequest('sectionIds must include all existing section IDs for this trip with no duplicates or invalid IDs.');
+    }
+
     const reordered = await tripSectionRepository.reorder(tripId, sectionIds);
     return reordered;
   }

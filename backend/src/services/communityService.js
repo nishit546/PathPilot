@@ -88,6 +88,9 @@ class CommunityService {
       if (!trip) {
         throw ApiError.notFound('Linked trip not found.');
       }
+      if (trip.visibility === 'PRIVATE' && trip.userId !== Number(userId)) {
+        throw ApiError.forbidden('You cannot link another user\'s private trip to a community post.');
+      }
     }
 
     const post = await communityRepository.create({
@@ -103,7 +106,9 @@ class CommunityService {
         id: author.id,
         firstName: author.firstName,
         lastName: author.lastName,
-        profilePhoto: author.profilePhoto
+        profilePhoto: author.profilePhoto,
+        city: author.city,
+        country: author.country
       } : null
     };
   }
@@ -116,6 +121,16 @@ class CommunityService {
 
     if (post.userId !== Number(userId)) {
       throw ApiError.forbidden('You do not have permission to edit this community post.');
+    }
+
+    if (data.tripId) {
+      const trip = await tripRepository.findById(data.tripId);
+      if (!trip) {
+        throw ApiError.notFound('Linked trip not found.');
+      }
+      if (trip.visibility === 'PRIVATE' && trip.userId !== Number(userId)) {
+        throw ApiError.forbidden('You cannot link another user\'s private trip.');
+      }
     }
 
     const updated = await communityRepository.update(id, data);

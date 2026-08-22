@@ -16,11 +16,13 @@ const calculateTripStatus = (startDate, endDate) => {
 class AnalyticsService {
   async getAdminAnalytics() {
     const totalUsers = await userRepository.count();
+    const activeUsers = mockDb.users.filter(u => !u.isBlocked).length;
+    const blockedUsers = mockDb.users.filter(u => u.isBlocked).length;
     const totalTrips = await tripRepository.count();
     const totalCommunityPosts = await communityRepository.count();
     const totalExpensesTracked = await expenseRepository.totalAmount();
 
-    // Trips by status
+    // Trips by status & timeline
     const allTrips = await tripRepository.findAll();
     const tripsByStatus = {
       UPCOMING: 0,
@@ -46,7 +48,7 @@ class AnalyticsService {
       }
     });
 
-    // Most popular cities (by popularity score & sections booked)
+    // Most popular cities
     const { cities } = await cityRepository.findAll({ sort: 'popularity', limit: 5 });
     const mostPopularCities = cities.map(c => ({
       id: c.id,
@@ -69,6 +71,8 @@ class AnalyticsService {
     return {
       overview: {
         totalUsers,
+        activeUsers,
+        blockedUsers,
         totalTrips,
         totalCommunityPosts,
         totalExpensesTracked

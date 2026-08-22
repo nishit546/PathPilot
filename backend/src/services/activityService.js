@@ -45,8 +45,12 @@ class ActivityService {
     const populated = await Promise.all(
       items.map(async (item) => {
         const meta = await activityRepository.findById(item.activityId);
+        const effectiveCost = item.customCost !== null && item.customCost !== undefined
+          ? item.customCost
+          : (meta ? meta.estimatedCost : 0);
         return {
           ...item,
+          effectiveCost,
           activity: meta || null
         };
       })
@@ -88,8 +92,13 @@ class ActivityService {
       dayId: day.id
     });
 
+    const effectiveCost = created.customCost !== null && created.customCost !== undefined
+      ? created.customCost
+      : masterActivity.estimatedCost;
+
     return {
       ...created,
+      effectiveCost,
       activity: masterActivity
     };
   }
@@ -129,9 +138,13 @@ class ActivityService {
 
     const updated = await dayActivityRepository.update(id, data);
     const masterActivity = await activityRepository.findById(updated.activityId);
+    const effectiveCost = updated.customCost !== null && updated.customCost !== undefined
+      ? updated.customCost
+      : (masterActivity ? masterActivity.estimatedCost : 0);
 
     return {
       ...updated,
+      effectiveCost,
       activity: masterActivity || null
     };
   }
@@ -161,6 +174,18 @@ class ActivityService {
     const trip = await tripRepository.findById(day.tripId);
     if (trip.userId !== Number(userId)) {
       throw ApiError.forbidden('You do not have permission to reorder activities for this day.');
+    }
+
+    const existing = await dayActivityRepository.findByDayId(day.id);
+    const existingIds = existing.map(a => a.id);
+
+    const uniqueIds = new Set(activityIds.map(Number));
+    if (
+      uniqueIds.size !== activityIds.length ||
+      activityIds.length !== existingIds.length ||
+      !activityIds.every(id => existingIds.includes(Number(id)))
+    ) {
+      throw ApiError.badRequest('activityIds must include all scheduled activity IDs for this day with no duplicates or invalid IDs.');
     }
 
     const reordered = await dayActivityRepository.reorder(dayId, activityIds);

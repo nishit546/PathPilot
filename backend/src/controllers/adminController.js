@@ -13,6 +13,10 @@ const getUsers = asyncHandler(async (req, res) => {
 
 const blockUser = asyncHandler(async (req, res) => {
   const targetId = Number(req.params.id);
+  if (isNaN(targetId) || targetId <= 0) {
+    throw ApiError.badRequest('Invalid user ID parameter.');
+  }
+
   if (targetId === req.user.id) {
     throw ApiError.badRequest('You cannot block your own administrator account.');
   }
@@ -22,15 +26,31 @@ const blockUser = asyncHandler(async (req, res) => {
     throw ApiError.notFound('User not found.');
   }
 
+  if (user.role === 'ADMIN') {
+    throw ApiError.forbidden('Administrator accounts cannot be blocked.');
+  }
+
+  if (user.isBlocked) {
+    return sendSuccess(res, `User ${user.email} is already blocked.`, { user }, 200);
+  }
+
   const updated = await userRepository.update(targetId, { isBlocked: true });
   return sendSuccess(res, `User ${updated.email} has been blocked successfully.`, { user: updated }, 200);
 });
 
 const unblockUser = asyncHandler(async (req, res) => {
   const targetId = Number(req.params.id);
+  if (isNaN(targetId) || targetId <= 0) {
+    throw ApiError.badRequest('Invalid user ID parameter.');
+  }
+
   const user = await userRepository.findById(targetId);
   if (!user) {
     throw ApiError.notFound('User not found.');
+  }
+
+  if (!user.isBlocked) {
+    return sendSuccess(res, `User ${user.email} is already active/unblocked.`, { user }, 200);
   }
 
   const updated = await userRepository.update(targetId, { isBlocked: false });

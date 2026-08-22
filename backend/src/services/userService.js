@@ -28,7 +28,16 @@ class UserService {
       throw ApiError.notFound('User not found.');
     }
 
-    const updatedUser = await userRepository.update(userId, updateData);
+    // Explicitly whitelist only editable profile fields to prevent privilege escalation
+    const allowedFields = ['firstName', 'lastName', 'phone', 'city', 'country', 'additionalInfo', 'profilePhoto'];
+    const sanitizedData = {};
+    for (const key of allowedFields) {
+      if (updateData[key] !== undefined) {
+        sanitizedData[key] = updateData[key];
+      }
+    }
+
+    const updatedUser = await userRepository.update(userId, sanitizedData);
     return updatedUser;
   }
 
