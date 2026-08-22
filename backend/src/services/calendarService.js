@@ -78,8 +78,10 @@ class CalendarService {
         );
 
         return {
+          id: trip.id,
           tripId: trip.id,
           name: trip.name,
+          title: trip.name,
           startDate: trip.startDate,
           endDate: trip.endDate,
           coverPhoto: trip.coverPhoto,

@@ -157,9 +157,14 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
     return <ErrorState message={error || 'Trip details could not be loaded.'} onRetry={loadAllTripData} />;
   }
 
-  const durationDays = Math.ceil(
-    (new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / (1000 * 60 * 60 * 24)
-  ) + 1;
+  const durationDays = Math.max(
+    1,
+    Math.ceil(
+      ((trip.endDate ? new Date(trip.endDate).getTime() : Date.now()) -
+        (trip.startDate ? new Date(trip.startDate).getTime() : Date.now())) /
+        (1000 * 60 * 60 * 24)
+    ) + 1
+  ) || 1;
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem 1.5rem 4rem 1.5rem' }}>

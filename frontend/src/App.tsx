@@ -31,14 +31,24 @@ const MainAppContent: React.FC = () => {
     return <AuthPage onAuthSuccess={() => setActiveTab('dashboard')} />;
   }
 
-  const handleViewTrip = (trip: Trip) => {
-    setSelectedTripId(trip.id);
-    setActiveTab('trip-details');
+  const handleViewTrip = (trip: any) => {
+    const tId = trip?.id || trip?.tripId;
+    if (tId) {
+      setSelectedTripId(tId);
+      setActiveTab('trip-details');
+    } else {
+      setActiveTab('trips');
+    }
   };
 
-  const handleEditItinerary = (tripId: number | string) => {
-    setSelectedTripId(tripId);
-    setActiveTab('itinerary');
+  const handleEditItinerary = (tripId: any) => {
+    const tId = typeof tripId === 'object' ? (tripId?.id || tripId?.tripId) : tripId;
+    if (tId) {
+      setSelectedTripId(tId);
+      setActiveTab('itinerary');
+    } else {
+      setActiveTab('trips');
+    }
   };
 
   const handleTripCreated = (newTripId: number | string) => {
@@ -68,26 +78,42 @@ const MainAppContent: React.FC = () => {
           />
         )}
 
-        {activeTab === 'itinerary' && selectedTripId && (
-          <ItineraryBuilderPage
-            tripId={selectedTripId}
-            onBack={() => setActiveTab('trips')}
-            onViewTripDetails={(id) => {
-              setSelectedTripId(id);
-              setActiveTab('trip-details');
-            }}
-          />
+        {activeTab === 'itinerary' && (
+          selectedTripId ? (
+            <ItineraryBuilderPage
+              tripId={selectedTripId}
+              onBack={() => setActiveTab('trips')}
+              onViewTripDetails={(id) => {
+                setSelectedTripId(id);
+                setActiveTab('trip-details');
+              }}
+            />
+          ) : (
+            <TripsPage
+              onViewTrip={handleViewTrip}
+              onEditItinerary={handleEditItinerary}
+              onPlanNewTrip={() => setIsCreateTripModalOpen(true)}
+            />
+          )
         )}
 
-        {activeTab === 'trip-details' && selectedTripId && (
-          <TripDetailsPage
-            tripId={selectedTripId}
-            onBack={() => setActiveTab('trips')}
-            onEditItinerary={(id) => {
-              setSelectedTripId(id);
-              setActiveTab('itinerary');
-            }}
-          />
+        {activeTab === 'trip-details' && (
+          selectedTripId ? (
+            <TripDetailsPage
+              tripId={selectedTripId}
+              onBack={() => setActiveTab('trips')}
+              onEditItinerary={(id) => {
+                setSelectedTripId(id);
+                setActiveTab('itinerary');
+              }}
+            />
+          ) : (
+            <TripsPage
+              onViewTrip={handleViewTrip}
+              onEditItinerary={handleEditItinerary}
+              onPlanNewTrip={() => setIsCreateTripModalOpen(true)}
+            />
+          )
         )}
 
         {activeTab === 'explore' && (

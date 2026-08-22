@@ -24,6 +24,13 @@ class TripAccessService {
     }
 
     const strUserId = String(userId);
+    const user = await userRepository.findById(strUserId);
+    if (user && user.isBlocked) {
+      throw ApiError.forbidden('Your account is blocked.');
+    }
+    if (user && (user.role === 'ADMIN' || user.role === 'admin')) {
+      return { trip, role: 'OWNER' };
+    }
 
     // 1. Is user the trip owner?
     if (String(trip.userId) === strUserId) {
@@ -33,11 +40,6 @@ class TripAccessService {
     // 2. Is user a collaborator?
     const collaborator = await tripCollaboratorRepository.findByTripAndUser(trip.id, strUserId);
     if (collaborator) {
-      // Check if collaborator account is blocked
-      const user = await userRepository.findById(strUserId);
-      if (user && user.isBlocked) {
-        throw ApiError.forbidden('Your account is blocked.');
-      }
       return { trip, role: collaborator.role };
     }
 

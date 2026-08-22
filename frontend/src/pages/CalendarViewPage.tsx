@@ -169,28 +169,32 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({ onViewTrip }
                   </span>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    {dayTrips.map(trip => (
-                      <div
-                        key={trip.id}
-                        onClick={() => onViewTrip && onViewTrip(trip)}
-                        style={{
-                          padding: '0.25rem 0.45rem',
-                          background: 'var(--primary-flare-subtle)',
-                          border: '1px solid rgba(255, 72, 0, 0.3)',
-                          borderRadius: '4px',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          color: 'var(--primary-flare)',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}
-                        title={trip.name || trip.title}
-                      >
-                        ✈️ {trip.name || trip.title}
-                      </div>
-                    ))}
+                    {dayTrips.map(trip => {
+                      const tId = trip.id || (trip as any).tripId;
+                      const title = trip.name || trip.title || 'Trip Itinerary';
+                      return (
+                        <div
+                          key={tId || title}
+                          onClick={() => onViewTrip && onViewTrip(trip)}
+                          style={{
+                            padding: '0.25rem 0.45rem',
+                            background: 'var(--primary-flare-subtle)',
+                            border: '1px solid rgba(255, 72, 0, 0.3)',
+                            borderRadius: '4px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            color: 'var(--primary-flare)',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                          title={title}
+                        >
+                          ✈️ {title}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
