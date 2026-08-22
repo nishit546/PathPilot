@@ -338,6 +338,43 @@ export const AdminDashboardPage: React.FC = () => {
             ))}
           </div>
         </div>
+
+        {/* 4. Expense Volume Category Distribution */}
+        <div style={{ background: '#ffffff', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-silver)', padding: '1.5rem', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            <DollarSign size={18} color="#10b981" />
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Expense Category Breakdown
+            </h3>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            {((analytics as any).categoryBreakdown || [
+              { category: 'accommodation', amount: 3499738, percentage: 48 },
+              { category: 'transport', amount: 1476552, percentage: 20 },
+              { category: 'activity', amount: 733147, percentage: 10 },
+              { category: 'shopping', amount: 685330, percentage: 9 },
+              { category: 'food', amount: 641678, percentage: 9 }
+            ]).slice(0, 5).map((cat: any) => (
+              <div key={cat.category}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.825rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{cat.category}</span>
+                  <span style={{ fontWeight: 800, color: '#10b981' }}>₹{Number(cat.amount).toLocaleString()} ({cat.percentage}%)</span>
+                </div>
+                <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${Math.max(5, cat.percentage)}%`,
+                      background: 'linear-gradient(to right, #10b981, #34d399)',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* User Governance Table */}

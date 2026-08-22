@@ -92,6 +92,14 @@ const mapRowToEntity = (row) => {
     entity.isReady = Boolean(row.is_verified);
     entity.isVerified = Boolean(row.is_verified);
   }
+  if (row.is_active !== undefined) {
+    entity.isActive = Boolean(row.is_active);
+    entity.isBlocked = !row.is_active;
+  }
+  if (row.is_blocked !== undefined) {
+    entity.isBlocked = Boolean(row.is_blocked);
+    entity.isActive = !row.is_blocked;
+  }
   if (row.status !== undefined && entity.isCompleted === undefined) {
     entity.isCompleted = String(row.status).toUpperCase() === 'COMPLETED';
   }

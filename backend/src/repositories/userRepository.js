@@ -46,8 +46,8 @@ class UserRepository {
 
     if (query.isBlocked !== undefined && query.isBlocked !== null && query.isBlocked !== '') {
       const blockedBool = String(query.isBlocked) === 'true';
-      params.push(blockedBool);
-      conditions.push(`p.is_blocked = $${params.length}`);
+      params.push(!blockedBool);
+      conditions.push(`p.is_active = $${params.length}`);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -223,8 +223,8 @@ class UserRepository {
       updates.push(`preferences = $${params.length}::jsonb`);
     }
     if (updateData.isBlocked !== undefined) {
-      params.push(Boolean(updateData.isBlocked));
-      updates.push(`is_blocked = $${params.length}`);
+      params.push(!Boolean(updateData.isBlocked));
+      updates.push(`is_active = $${params.length}`);
     }
     if (updateData.role !== undefined && updateData.allowRoleChange) {
       params.push(updateData.role.toLowerCase());
