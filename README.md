@@ -7,15 +7,14 @@
 
 ## 📑 Table of Contents
 
-- [🌟 Features](#-features)
-- [🛠️ Tech Stack](#️-tech-stack)
-- [🏗️ System Architecture](#️-system-architecture)
-- [📂 Repository Structure](#-repository-structure)
-- [🚀 Quick Start & Setup on Any Device](#-quick-start--setup-on-any-device)
-- [🛡️ Database & Security Architecture](#️-database--security-architecture)
-- [📊 Admin Dashboard (GlobalTrotter) Views](#-admin-dashboard-globaltrotter-views)
-- [👥 Seed Accounts for Testing](#-seed-accounts-for-testing)
-- [📜 License](#-license)
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Repository Structure](#-repository-structure)
+- [Quick Start & Setup on Any Device](#-quick-start--setup-on-any-device)
+- [Database & Security Architecture](#-database--security-architecture)
+- [Admin Dashboard Views](#-admin-dashboard-globaltrotter-views)
+- [Seed Accounts for Testing](#-seed-accounts-for-testing)
+- [License](#-license)
 
 ---
 
