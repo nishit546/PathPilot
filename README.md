@@ -20,15 +20,25 @@
 
 ---
 
+## 🛠️ Technology Stack
+
+The platform is designed to compile with the following primary tools and framework layers:
+
+| <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/react/react-original.svg" width="38" height="38" /><br />**React** | <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/vitejs/vitejs-original.svg" width="38" height="38" /><br />**Vite** | <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/nodejs/nodejs-original.svg" width="38" height="38" /><br />**Node.js** | <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/express/express-original.svg" width="38" height="38" /><br />**Express** | <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/postgresql/postgresql-original.svg" width="38" height="38" /><br />**PostgreSQL** | <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/supabase/supabase-original.svg" width="38" height="38" /><br />**Supabase** | <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/typescript/typescript-original.svg" width="38" height="38" /><br />**TypeScript** | <img src="https://jwt.io/img/pic_logo.svg" width="38" height="38" /><br />**JWT** |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+
+---
+
 ## 📑 Table of Contents
 
 - [Overview](#-overview)
 - [Key Features](#-key-features)
-- [Architecture & Tech Stack](#-architecture--tech-stack)
+- [Technology Stack](#️-technology-stack)
+- [Backend Architecture & Service Layer](#-backend-architecture--service-layer)
+- [Database Architecture & Schema](#-database-architecture--schema)
 - [Repository Structure](#-repository-structure)
 - [Quick Start & Local Setup](#-quick-start--local-setup)
 - [Pre-Seeded Test Accounts](#-pre-seeded-test-accounts)
-- [Database Schema & Views](#-database-schema--views)
 - [API Reference](#-api-reference)
 - [License](#-license)
 
@@ -85,15 +95,82 @@ graph TD
 
 ---
 
-## 🛠️ Architecture & Tech Stack
+## ⚙️ Backend Architecture & Service Layer
 
-| Layer | Technologies | Purpose |
-|---|---|---|
-| **Frontend** | React 19, TypeScript, Vite, Vanilla CSS Design System | High-performance, reactive UI with rich aesthetics, modals, and responsive layout |
-| **Icons & Assets** | Lucide React, SVG vector icons | Crisp, retina-ready travel UI icons and custom branding |
-| **Backend API** | Node.js, Express.js (v4.19+) | Robust REST API, JWT authentication, role authorization, and validation |
-| **Database** | PostgreSQL 14+, Supabase | Relational data integrity, foreign key cascades, views, and auto-updated timestamps |
-| **Data Access** | Repository Pattern & Service Layer | Clean architectural separation of database queries and business domain logic |
+The PathPilot backend is built with **Node.js** and **Express.js**, adhering to a robust **Controller-Service-Repository** architectural pattern:
+
+```
+[HTTP Request] 
+      │
+      ▼
+[Express Router] ──> [Auth & Role Middleware] 
+                              │
+                              ▼
+                      [Controller Layer]
+                              │
+                              ▼
+                       [Service Layer] (Business Logic & External APIs)
+                              │
+                              ▼
+                     [Repository Layer] ──> [pg Pool Connection] ──> [PostgreSQL / Supabase]
+```
+
+### 🛠️ Key Backend Modules
+
+1. **Authentication & Authorization (`authController.js`, `jwt.js`)**:
+   - Secure login & registration issuing signed **JWT tokens**.
+   - Role-based authorization middleware (`authMiddleware.js`, `adminMiddleware.js`) enforcing traveler vs. administrator permissions.
+
+2. **Itinerary & Day Schedule Engine (`itineraryService.js`)**:
+   - Manages trip stops, auto-generates daily calendar slots between arrival & departure dates.
+   - Automatically maps location-specific activities (`cityId`) to itinerary days upon stop creation.
+
+3. **Platform Analytics & Governance Service (`analyticsService.js`)**:
+   - Computes real-time platform metrics directly via PostgreSQL queries (`v_admin_platform_overview`).
+   - Powers the Admin Dashboard charts: Expense Volume, Trip Status Distribution (Pie View), Top Destinations Leaderboard (Bar View), Monthly Growth Trends (Line View), and Expense Category Volume Breakdown.
+
+4. **External Integrations (`geoapifyService.js`, `imageService.js`)**:
+   - **Geoapify Integration**: Geocoding, place search, and coordinate lookups for cities and activities.
+   - **Pexels & Cloudinary Integration**: Dynamic high-resolution destination image resolution, caching, and CDN optimization.
+
+---
+
+## 🗄️ Database Architecture & Schema
+
+PathPilot utilizes **PostgreSQL** (hosted via Supabase or local PostgreSQL instance) with automated migration tracking and pre-computed aggregation views.
+
+### 🔌 Dual Database Compatibility
+The system dynamically connects via `pg.Pool`:
+- **Cloud Supabase Mode**: Connects using `DATABASE_URL` with SSL connection pooling.
+- **Local PostgreSQL Fallback**: Automatically connects to local `localhost:5432` PostgreSQL if cloud credentials are absent.
+
+```mermaid
+erDiagram
+    PROFILES ||--o{ TRIPS : "creates & owns"
+    PROFILES ||--o{ COMMUNITY_POSTS : "publishes"
+    TRIPS ||--o{ TRIP_SECTIONS : "contains stops"
+    TRIP_SECTIONS }|--|| CITIES : "located in"
+    TRIP_SECTIONS ||--o{ DAYS : "generates days"
+    DAYS ||--o{ DAY_ACTIVITIES : "schedules"
+    DAY_ACTIVITIES }|--|| ACTIVITIES : "references"
+    TRIPS ||--o{ BUDGET_ITEMS : "tracks expenses"
+    TRIPS ||--o{ TRIP_COLLABORATORS : "shares with"
+```
+
+### 📊 Database Tables & Views Overview
+
+| Table / View | Description |
+|---|---|
+| `public.profiles` | User accounts, roles (`user`, `admin`), active status (`is_active`), and avatars |
+| `public.trips` | Main trip itineraries with start/end dates, total budget, and privacy (`PUBLIC`/`PRIVATE`) |
+| `public.trip_sections` | Destination stops linked to `cities(id)` with allocated stop budgets |
+| `public.days` | Auto-generated daily schedule slots per section |
+| `public.activities` | Curated activities catalog linked to `cities(id)` with categories & estimated costs |
+| `public.day_activities` | Junction table linking days to scheduled activities with custom time slots & costs |
+| `public.budget_items` | Tracked expenses categorized into `accommodation`, `transport`, `food`, `activity`, `entry_fee`, `shopping`, `other` |
+| `v_admin_platform_overview` | SQL View computing live total users, active users, total trips, and total expense volume |
+| `v_admin_popular_cities` | SQL View calculating city visit counts and average stay duration |
+| `v_admin_analytics_category_breakdown` | SQL View calculating spending volume per category |
 
 ---
 
@@ -119,6 +196,9 @@ PathPilot/
 │   │   └── config/               # Database pool & environment configs
 │   └── README.md                 # Dedicated Backend Documentation
 ├── database/                     # Database schemas, migrations & seeds
+│   ├── migrations/               # Sequential migration files (001 - 006)
+│   ├── seed/                     # Seed data scripts
+│   └── scripts/                  # Migration & data enrichment utilities
 ├── docs/                         # Extended API contracts & integration guides
 ├── CODE_OF_CONDUCT.md            # Contributor Covenant Code of Conduct
 ├── CONTRIBUTING.md                # Open source contribution guidelines
@@ -146,7 +226,7 @@ cd PathPilot
 cd backend
 npm install
 cp .env.example .env
-# Open .env and configure your DATABASE_URL and SUPABASE_JWT_SECRET
+# Open .env and configure your DATABASE_URL and JWT_SECRET
 npm start
 ```
 *The backend REST API will run on `http://localhost:5000`.*
@@ -167,21 +247,9 @@ You can immediately test all features using the following pre-configured demonst
 
 | Role | Email | Password | Access Privileges |
 |---|---|---|---|
-| **Administrator** | `admin@pathpilot.dev` | `Admin@12345` | Global Admin Analytics, User Management & System Control |
-| **Traveler** | `nishit@pathpilot.dev` | `Traveler@123` | Personal Trips, Group Expenses, Itineraries & Packing Lists |
-| **Traveler** | `sam@traveler.com` | `Traveler@123` | Multi-City Tours, Community Reviews & Collaborative Trips |
-
----
-
-## 🗄️ Database Schema & Views
-
-PathPilot leverages advanced PostgreSQL views for instant, non-blocking calculations:
-
-- `v_trip_budget_summary`: Aggregates total trip budget, manual expenses, activities cost, and remaining funds.
-- `v_section_budget_summary`: Calculates allocated vs. actual spend per destination stop.
-- `v_day_budget_summary`: Groups daily activity expenditures and scheduled item costs.
-- `public.trips`: Core trip registry with status triggers and privacy controls (`PUBLIC` vs. `PRIVATE`).
-- `public.trip_collaborators`: Multi-user access permissions (`OWNER`, `EDITOR`, `VIEWER`).
+| **Administrator** | `harshit@pathpilot.dev` | `PathPilotPass123!` | Global Admin Analytics, User Management & System Control |
+| **Traveler** | `aarav.sharma@pathpilot.dev` | `PathPilotPass123!` | Personal Trips, Group Expenses, Itineraries & Packing Lists |
+| **Traveler** | `traveler@pathpilot.com` | `Traveler@123` | Multi-City Tours, Community Reviews & Collaborative Trips |
 
 ---
 
@@ -201,8 +269,6 @@ A sample of core REST endpoints exposed by the backend:
 | `GET` | `/api/cities` | Searchable global destinations catalog | No |
 | `GET` | `/api/admin/analytics` | Fetch platform intelligence & KPI charts | Admin Only |
 | `GET` | `/api/admin/users` | Manage user directory & access status | Admin Only |
-
-*(For full endpoint definitions and payload schemas, see [docs/API_CONTRACT.md](docs/API_CONTRACT.md).)*
 
 ---
 
