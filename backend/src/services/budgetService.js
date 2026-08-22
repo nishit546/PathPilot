@@ -5,20 +5,15 @@ const dayActivityRepository = require('../repositories/dayActivityRepository');
 const activityRepository = require('../repositories/activityRepository');
 const cityRepository = require('../repositories/cityRepository');
 const expenseRepository = require('../repositories/expenseRepository');
+const tripAccessService = require('./tripAccessService');
 const ApiError = require('../utils/ApiError');
 
 class BudgetService {
   async getTripBudgetAnalytics(tripId, userId) {
-    const trip = await tripRepository.findById(tripId);
-    if (!trip) {
-      throw ApiError.notFound('Trip not found.');
-    }
+    const { trip } = await tripAccessService.requirePermission(tripId, userId, ['OWNER', 'EDITOR', 'VIEWER']);
 
-    if (trip.visibility === 'PRIVATE' && (!userId || trip.userId !== Number(userId))) {
-      throw ApiError.forbidden('You do not have permission to view budget analytics for this trip.');
-    }
-
-    const expenses = await expenseRepository.findByTripId(trip.id);
+    const expRes = await expenseRepository.findByTripId(trip.id);
+    const expenses = Array.isArray(expRes) ? expRes : (expRes && expRes.expenses ? expRes.expenses : []);
     const sections = await tripSectionRepository.findByTripId(trip.id);
     const days = await dayRepository.findByTripId(trip.id);
 
@@ -42,11 +37,25 @@ class BudgetService {
       totalSpent += e.amount;
     });
 
+    // Scheduled activity costs calculation
+    let totalActivityCost = 0;
+    for (const day of days) {
+      const dayActivities = await dayActivityRepository.findByDayId(day.id);
+      for (const da of dayActivities) {
+        if (da.customCost !== null && da.customCost !== undefined) {
+          totalActivityCost += da.customCost;
+        } else {
+          const master = await activityRepository.findById(da.activityId);
+          totalActivityCost += master ? master.estimatedCost : 0;
+        }
+      }
+    }
+
     // Section breakdown with percentage
     const sectionBreakdown = await Promise.all(
       sections.map(async (section) => {
         const city = await cityRepository.findById(section.cityId);
-        const sectionExpenses = expenses.filter(e => e.sectionId === section.id);
+        const sectionExpenses = expenses.filter(e => String(e.sectionId) === String(section.id));
         const sectionSpent = sectionExpenses.reduce((sum, e) => sum + e.amount, 0);
         const sectionBudget = section.budget || 0;
         const sectionRemaining = sectionBudget - sectionSpent;
@@ -69,7 +78,7 @@ class BudgetService {
     // Day breakdown
     const dayBreakdown = await Promise.all(
       days.map(async (day) => {
-        const dayExpenses = expenses.filter(e => e.dayId === day.id);
+        const dayExpenses = expenses.filter(e => String(e.dayId) === String(day.id));
         const dayExpenseTotal = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
 
         const dayActivities = await dayActivityRepository.findByDayId(day.id);
@@ -105,12 +114,16 @@ class BudgetService {
     const remainingBudget = totalBudget - totalSpent;
     const percentageUsed = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 10000) / 100 : 0;
     const averageCostPerDay = totalDays > 0 ? Math.round((totalSpent / totalDays) * 100) / 100 : 0;
+    const estimatedTotalTripCost = totalSpent + totalActivityCost;
 
     return {
       tripId: trip.id,
       tripName: trip.name,
       totalBudget,
       totalSpent,
+      manualExpenses: totalSpent,
+      activityEstimatedCost: totalActivityCost,
+      estimatedTotalTripCost,
       estimatedSpent: totalSpent,
       remainingBudget,
       percentageUsed,

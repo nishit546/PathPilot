@@ -1,8 +1,11 @@
 const activityRepository = require('../repositories/activityRepository');
 const dayActivityRepository = require('../repositories/dayActivityRepository');
 const dayRepository = require('../repositories/dayRepository');
+const tripSectionRepository = require('../repositories/tripSectionRepository');
 const tripRepository = require('../repositories/tripRepository');
 const cityRepository = require('../repositories/cityRepository');
+const tripActivityLogRepository = require('../repositories/tripActivityLogRepository');
+const tripAccessService = require('./tripAccessService');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -36,10 +39,7 @@ class ActivityService {
       throw ApiError.notFound('Day not found.');
     }
 
-    const trip = await tripRepository.findById(day.tripId);
-    if (trip.visibility === 'PRIVATE' && (!userId || trip.userId !== Number(userId))) {
-      throw ApiError.forbidden('You do not have access to this day’s activities.');
-    }
+    const { trip } = await tripAccessService.requirePermission(day.tripId, userId, ['OWNER', 'EDITOR', 'VIEWER']);
 
     const items = await dayActivityRepository.findByDayId(dayId);
     const populated = await Promise.all(
@@ -65,10 +65,7 @@ class ActivityService {
       throw ApiError.notFound('Day not found.');
     }
 
-    const trip = await tripRepository.findById(day.tripId);
-    if (trip.userId !== Number(userId)) {
-      throw ApiError.forbidden('You do not have permission to schedule activities for this trip.');
-    }
+    const { trip } = await tripAccessService.requirePermission(day.tripId, userId, ['OWNER', 'EDITOR']);
 
     const masterActivity = await activityRepository.findById(data.activityId);
     if (!masterActivity) {
@@ -96,6 +93,14 @@ class ActivityService {
       ? created.customCost
       : masterActivity.estimatedCost;
 
+    // Record activity log
+    await tripActivityLogRepository.create({
+      tripId: trip.id,
+      userId,
+      action: 'ACTIVITY_SCHEDULED',
+      description: `Scheduled "${masterActivity.name}" for Day ${day.dayNumber} (${day.date})`
+    });
+
     return {
       ...created,
       effectiveCost,
@@ -110,10 +115,11 @@ class ActivityService {
     }
 
     const day = await dayRepository.findById(dayActivity.dayId);
-    const trip = await tripRepository.findById(day.tripId);
-    if (trip.userId !== Number(userId)) {
-      throw ApiError.forbidden('You do not have permission to update this scheduled activity.');
+    if (!day) {
+      throw ApiError.notFound('Parent day not found.');
     }
+
+    const { trip } = await tripAccessService.requirePermission(day.tripId, userId, ['OWNER', 'EDITOR']);
 
     if (data.activityId) {
       const master = await activityRepository.findById(data.activityId);
@@ -142,6 +148,14 @@ class ActivityService {
       ? updated.customCost
       : (masterActivity ? masterActivity.estimatedCost : 0);
 
+    // Record activity log
+    await tripActivityLogRepository.create({
+      tripId: trip.id,
+      userId,
+      action: 'ACTIVITY_UPDATED',
+      description: `Updated scheduled activity "${masterActivity ? masterActivity.name : ''}" on Day ${day.dayNumber}`
+    });
+
     return {
       ...updated,
       effectiveCost,
@@ -156,12 +170,23 @@ class ActivityService {
     }
 
     const day = await dayRepository.findById(dayActivity.dayId);
-    const trip = await tripRepository.findById(day.tripId);
-    if (trip.userId !== Number(userId)) {
-      throw ApiError.forbidden('You do not have permission to delete this scheduled activity.');
+    if (!day) {
+      throw ApiError.notFound('Parent day not found.');
     }
 
+    const { trip } = await tripAccessService.requirePermission(day.tripId, userId, ['OWNER', 'EDITOR']);
+    const masterActivity = await activityRepository.findById(dayActivity.activityId);
+
     await dayActivityRepository.delete(id);
+
+    // Record activity log
+    await tripActivityLogRepository.create({
+      tripId: trip.id,
+      userId,
+      action: 'ACTIVITY_DELETED',
+      description: `Removed activity "${masterActivity ? masterActivity.name : ''}" from Day ${day.dayNumber}`
+    });
+
     return { message: 'Scheduled activity removed successfully.' };
   }
 
@@ -171,19 +196,17 @@ class ActivityService {
       throw ApiError.notFound('Day not found.');
     }
 
-    const trip = await tripRepository.findById(day.tripId);
-    if (trip.userId !== Number(userId)) {
-      throw ApiError.forbidden('You do not have permission to reorder activities for this day.');
-    }
+    const { trip } = await tripAccessService.requirePermission(day.tripId, userId, ['OWNER', 'EDITOR']);
 
     const existing = await dayActivityRepository.findByDayId(day.id);
     const existingIds = existing.map(a => a.id);
 
-    const uniqueIds = new Set(activityIds.map(Number));
+    const uniqueIds = new Set(activityIds.map(String));
+    const strExistingIds = existingIds.map(String);
     if (
       uniqueIds.size !== activityIds.length ||
       activityIds.length !== existingIds.length ||
-      !activityIds.every(id => existingIds.includes(Number(id)))
+      !activityIds.every(id => strExistingIds.includes(String(id)))
     ) {
       throw ApiError.badRequest('activityIds must include all scheduled activity IDs for this day with no duplicates or invalid IDs.');
     }

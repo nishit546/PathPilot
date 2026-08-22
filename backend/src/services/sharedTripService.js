@@ -23,12 +23,16 @@ class SharedTripService {
       throw ApiError.notFound('Trip not found.');
     }
 
-    if (trip.userId !== Number(userId)) {
+    if (String(trip.userId) !== String(userId)) {
       throw ApiError.forbidden('You do not have permission to share this trip.');
     }
 
     const token = `share_${crypto.randomBytes(16).toString('hex')}`;
-    const shareRecord = await sharedTripRepository.create(trip.id, token);
+    const shareRecord = await sharedTripRepository.create({
+      tripId: trip.id,
+      userId,
+      shareToken: token
+    });
 
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
 
@@ -120,7 +124,7 @@ class SharedTripService {
       throw ApiError.notFound('Trip not found.');
     }
 
-    if (trip.userId !== Number(userId)) {
+    if (String(trip.userId) !== String(userId)) {
       throw ApiError.forbidden('You do not have permission to modify this trip’s sharing settings.');
     }
 

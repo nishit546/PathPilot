@@ -88,7 +88,7 @@ class CommunityService {
       if (!trip) {
         throw ApiError.notFound('Linked trip not found.');
       }
-      if (trip.visibility === 'PRIVATE' && trip.userId !== Number(userId)) {
+      if (trip.visibility === 'PRIVATE' && String(trip.userId) !== String(userId)) {
         throw ApiError.forbidden('You cannot link another user\'s private trip to a community post.');
       }
     }
@@ -119,7 +119,7 @@ class CommunityService {
       throw ApiError.notFound('Community post not found.');
     }
 
-    if (post.userId !== Number(userId)) {
+    if (String(post.userId) !== String(userId)) {
       throw ApiError.forbidden('You do not have permission to edit this community post.');
     }
 
@@ -128,7 +128,7 @@ class CommunityService {
       if (!trip) {
         throw ApiError.notFound('Linked trip not found.');
       }
-      if (trip.visibility === 'PRIVATE' && trip.userId !== Number(userId)) {
+      if (trip.visibility === 'PRIVATE' && String(trip.userId) !== String(userId)) {
         throw ApiError.forbidden('You cannot link another user\'s private trip.');
       }
     }
@@ -143,7 +143,7 @@ class CommunityService {
       throw ApiError.notFound('Community post not found.');
     }
 
-    if (post.userId !== Number(userId) && userRole !== 'ADMIN') {
+    if (String(post.userId) !== String(userId) && userRole !== 'ADMIN' && userRole !== 'admin') {
       throw ApiError.forbidden('You do not have permission to delete this post.');
     }
 

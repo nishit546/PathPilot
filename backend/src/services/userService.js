@@ -29,7 +29,7 @@ class UserService {
     }
 
     // Explicitly whitelist only editable profile fields to prevent privilege escalation
-    const allowedFields = ['firstName', 'lastName', 'phone', 'city', 'country', 'additionalInfo', 'profilePhoto'];
+    const allowedFields = ['firstName', 'lastName', 'name', 'phone', 'city', 'country', 'bio', 'homeCurrency', 'additionalInfo', 'profilePhoto'];
     const sanitizedData = {};
     for (const key of allowedFields) {
       if (updateData[key] !== undefined) {
@@ -89,6 +89,22 @@ class UserService {
       ongoing,
       completed
     };
+  }
+
+  async getPreferences(userId) {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw ApiError.notFound('User not found.');
+    }
+    return userRepository.getPreferences(userId);
+  }
+
+  async updatePreferences(userId, data) {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw ApiError.notFound('User not found.');
+    }
+    return userRepository.updatePreferences(userId, data);
   }
 }
 

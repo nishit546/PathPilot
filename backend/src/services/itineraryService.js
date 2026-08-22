@@ -4,6 +4,9 @@ const dayRepository = require('../repositories/dayRepository');
 const dayActivityRepository = require('../repositories/dayActivityRepository');
 const cityRepository = require('../repositories/cityRepository');
 const activityRepository = require('../repositories/activityRepository');
+const expenseRepository = require('../repositories/expenseRepository');
+const tripActivityLogRepository = require('../repositories/tripActivityLogRepository');
+const tripAccessService = require('./tripAccessService');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -23,16 +26,9 @@ const getDateRange = (startDateStr, endDateStr) => {
 
 class ItineraryService {
   async getTripSections(tripId, userId) {
-    const trip = await tripRepository.findById(tripId);
-    if (!trip) {
-      throw ApiError.notFound('Trip not found.');
-    }
+    const { trip } = await tripAccessService.requirePermission(tripId, userId, ['OWNER', 'EDITOR', 'VIEWER']);
 
-    if (trip.visibility === 'PRIVATE' && (!userId || trip.userId !== Number(userId))) {
-      throw ApiError.forbidden('You do not have access to this trip’s itinerary.');
-    }
-
-    const sections = await tripSectionRepository.findByTripId(tripId);
+    const sections = await tripSectionRepository.findByTripId(trip.id);
     const populated = await Promise.all(
       sections.map(async (section) => {
         const city = await cityRepository.findById(section.cityId);
@@ -54,10 +50,7 @@ class ItineraryService {
       throw ApiError.notFound('Trip section not found.');
     }
 
-    const trip = await tripRepository.findById(section.tripId);
-    if (trip.visibility === 'PRIVATE' && (!userId || trip.userId !== Number(userId))) {
-      throw ApiError.forbidden('You do not have access to this trip section.');
-    }
+    const { trip } = await tripAccessService.requirePermission(section.tripId, userId, ['OWNER', 'EDITOR', 'VIEWER']);
 
     const city = await cityRepository.findById(section.cityId);
     const days = await dayRepository.findBySectionId(section.id);
@@ -77,14 +70,7 @@ class ItineraryService {
   }
 
   async createSection(tripId, userId, sectionData) {
-    const trip = await tripRepository.findById(tripId);
-    if (!trip) {
-      throw ApiError.notFound('Trip not found.');
-    }
-
-    if (trip.userId !== Number(userId)) {
-      throw ApiError.forbidden('You do not have permission to add sections to this trip.');
-    }
+    const { trip } = await tripAccessService.requirePermission(tripId, userId, ['OWNER', 'EDITOR']);
 
     const city = await cityRepository.findById(sectionData.cityId);
     if (!city) {
@@ -118,6 +104,14 @@ class ItineraryService {
 
     const createdDays = await dayRepository.createBulk(dayRecordsToCreate);
 
+    // Record activity log
+    await tripActivityLogRepository.create({
+      tripId: trip.id,
+      userId,
+      action: 'SECTION_CREATED',
+      description: `Added destination section for ${city.name} (${createdSection.startDate} to ${createdSection.endDate})`
+    });
+
     return {
       ...createdSection,
       city,
@@ -131,10 +125,7 @@ class ItineraryService {
       throw ApiError.notFound('Trip section not found.');
     }
 
-    const trip = await tripRepository.findById(section.tripId);
-    if (trip.userId !== Number(userId)) {
-      throw ApiError.forbidden('You do not have permission to update this section.');
-    }
+    const { trip } = await tripAccessService.requirePermission(section.tripId, userId, ['OWNER', 'EDITOR']);
 
     if (updateData.cityId) {
       const city = await cityRepository.findById(updateData.cityId);
@@ -167,6 +158,7 @@ class ItineraryService {
       for (const day of existingDays) {
         if (!newDateRange.includes(day.date)) {
           await dayActivityRepository.deleteByDayId(day.id);
+          await expenseRepository.deleteByDayId(day.id);
           await dayRepository.delete(day.id);
         }
       }
@@ -198,6 +190,14 @@ class ItineraryService {
     const finalDays = await dayRepository.findBySectionId(section.id);
     const city = await cityRepository.findById(updatedSection.cityId);
 
+    // Record activity log
+    await tripActivityLogRepository.create({
+      tripId: trip.id,
+      userId,
+      action: 'SECTION_UPDATED',
+      description: `Updated destination section ${city ? city.name : ''}`
+    });
+
     return {
       ...updatedSection,
       city: city || null,
@@ -211,45 +211,47 @@ class ItineraryService {
       throw ApiError.notFound('Trip section not found.');
     }
 
-    const trip = await tripRepository.findById(section.tripId);
-    if (trip.userId !== Number(userId)) {
-      throw ApiError.forbidden('You do not have permission to delete this section.');
-    }
+    const { trip } = await tripAccessService.requirePermission(section.tripId, userId, ['OWNER', 'EDITOR']);
+    const city = await cityRepository.findById(section.cityId);
 
     const days = await dayRepository.findBySectionId(section.id);
     for (const d of days) {
       await dayActivityRepository.deleteByDayId(d.id);
+      await expenseRepository.deleteByDayId(d.id);
     }
     await dayRepository.deleteBySectionId(section.id);
+    await expenseRepository.deleteBySectionId(section.id);
     await tripSectionRepository.delete(section.id);
+
+    // Record activity log
+    await tripActivityLogRepository.create({
+      tripId: trip.id,
+      userId,
+      action: 'SECTION_DELETED',
+      description: `Removed destination section ${city ? city.name : ''}`
+    });
 
     return { message: 'Trip section and its days deleted successfully.' };
   }
 
   async reorderSections(tripId, userId, sectionIds) {
-    const trip = await tripRepository.findById(tripId);
-    if (!trip) {
-      throw ApiError.notFound('Trip not found.');
-    }
-
-    if (trip.userId !== Number(userId)) {
-      throw ApiError.forbidden('You do not have permission to reorder sections for this trip.');
-    }
+    const { trip } = await tripAccessService.requirePermission(tripId, userId, ['OWNER', 'EDITOR']);
 
     const existing = await tripSectionRepository.findByTripId(trip.id);
     const existingIds = existing.map(s => s.id);
 
     // Validate that all sectionIds match existing section IDs without duplicates
-    const uniqueIds = new Set(sectionIds.map(Number));
+    const uniqueIds = new Set(sectionIds.map(String));
+    const strExistingIds = existingIds.map(String);
     if (
       uniqueIds.size !== sectionIds.length ||
       sectionIds.length !== existingIds.length ||
-      !sectionIds.every(id => existingIds.includes(Number(id)))
+      !sectionIds.every(id => strExistingIds.includes(String(id)))
     ) {
       throw ApiError.badRequest('sectionIds must include all existing section IDs for this trip with no duplicates or invalid IDs.');
     }
 
-    const reordered = await tripSectionRepository.reorder(tripId, sectionIds);
+    const reordered = await tripSectionRepository.reorder(trip.id, sectionIds);
     return reordered;
   }
 
@@ -259,10 +261,7 @@ class ItineraryService {
       throw ApiError.notFound('Trip section not found.');
     }
 
-    const trip = await tripRepository.findById(section.tripId);
-    if (trip.visibility === 'PRIVATE' && (!userId || trip.userId !== Number(userId))) {
-      throw ApiError.forbidden('You do not have access to this section’s days.');
-    }
+    const { trip } = await tripAccessService.requirePermission(section.tripId, userId, ['OWNER', 'EDITOR', 'VIEWER']);
 
     const days = await dayRepository.findBySectionId(sectionId);
     const daysWithActivities = await Promise.all(
@@ -287,10 +286,7 @@ class ItineraryService {
       throw ApiError.notFound('Day not found.');
     }
 
-    const trip = await tripRepository.findById(day.tripId);
-    if (trip.visibility === 'PRIVATE' && (!userId || trip.userId !== Number(userId))) {
-      throw ApiError.forbidden('You do not have access to this day.');
-    }
+    const { trip } = await tripAccessService.requirePermission(day.tripId, userId, ['OWNER', 'EDITOR', 'VIEWER']);
 
     const activities = await dayActivityRepository.findByDayId(day.id);
     const detailedActivities = await Promise.all(
@@ -304,6 +300,24 @@ class ItineraryService {
       ...day,
       activities: detailedActivities
     };
+  }
+
+  async getTripDays(tripId, userId) {
+    const { trip } = await tripAccessService.requirePermission(tripId, userId, ['OWNER', 'EDITOR', 'VIEWER']);
+    const days = await dayRepository.findByTripId(trip.id);
+    const daysWithActivities = await Promise.all(
+      days.map(async (day) => {
+        const activities = await dayActivityRepository.findByDayId(day.id);
+        const detailed = await Promise.all(
+          activities.map(async (da) => {
+            const meta = await activityRepository.findById(da.activityId);
+            return { ...da, activity: meta || null };
+          })
+        );
+        return { ...day, activities: detailed };
+      })
+    );
+    return daysWithActivities;
   }
 }
 
