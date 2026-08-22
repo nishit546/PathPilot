@@ -643,77 +643,94 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
                             </div>
 
                             {/* Scheduled Day Activities */}
-                            {(!day.dayActivities || day.dayActivities.length === 0) ? (
-                              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.5rem 0' }}>
-                                No activities scheduled for this day yet.
-                              </p>
-                            ) : (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-                                {day.dayActivities.map(act => {
-                                  return (
-                                    <div
-                                      key={act.id}
-                                      style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        padding: '0.6rem 0.75rem',
-                                        borderRadius: 'var(--radius-sm)',
-                                        background: '#f8fafc',
-                                        border: '1px solid #e2e8f0'
-                                      }}
-                                    >
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                        <div
-                                          style={{
-                                            fontSize: '0.72rem',
-                                            fontWeight: 700,
-                                            color: 'var(--secondary-horizon)',
-                                            background: 'var(--secondary-horizon-subtle)',
-                                            padding: '0.2rem 0.45rem',
-                                            borderRadius: '4px',
-                                            whiteSpace: 'nowrap'
-                                          }}
-                                        >
-                                          {act.startTime} - {act.endTime}
-                                        </div>
-                                        <div>
-                                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block' }}>
-                                            {act.activity?.name || 'Activity'}
-                                          </span>
-                                          {act.notes && (
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                                              {act.notes}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
+                            {(() => {
+                              const actsList = (day.dayActivities && day.dayActivities.length > 0)
+                                ? day.dayActivities
+                                : (day.activities && day.activities.length > 0)
+                                ? day.activities
+                                : ((day as any).day_activities || []);
 
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--primary-flare)' }}>
-                                          ₹{act.customCost?.toLocaleString()}
-                                        </span>
-                                        <button
-                                          onClick={() => handleDeleteActivity(act.id)}
-                                          title="Delete Activity"
-                                          style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            color: 'var(--muted-slate)',
-                                            cursor: 'pointer',
-                                            padding: '0.2rem',
-                                            display: 'flex',
-                                            alignItems: 'center'
-                                          }}
-                                        >
-                                          <Trash2 size={13} />
-                                        </button>
+                              if (actsList.length === 0) {
+                                return (
+                                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.5rem 0' }}>
+                                    No activities scheduled for this day yet.
+                                  </p>
+                                );
+                              }
+
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                                  {actsList.map((act: any) => {
+                                    const actName = act.activity?.name || (act as any).name || (act as any).activityName || (act as any).title || 'Scheduled Activity';
+                                    const actCost = act.customCost !== undefined ? act.customCost : ((act as any).cost || act.activity?.cost || 0);
+                                    const actStart = act.startTime || (act as any).start_time || '10:00';
+                                    const actEnd = act.endTime || (act as any).end_time || '13:00';
+
+                                    return (
+                                      <div
+                                        key={act.id}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          padding: '0.6rem 0.75rem',
+                                          borderRadius: 'var(--radius-sm)',
+                                          background: '#f8fafc',
+                                          border: '1px solid #e2e8f0'
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                          <div
+                                            style={{
+                                              fontSize: '0.72rem',
+                                              fontWeight: 700,
+                                              color: 'var(--secondary-horizon)',
+                                              background: 'var(--secondary-horizon-subtle)',
+                                              padding: '0.2rem 0.45rem',
+                                              borderRadius: '4px',
+                                              whiteSpace: 'nowrap'
+                                            }}
+                                          >
+                                            {actStart} - {actEnd}
+                                          </div>
+                                          <div>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block' }}>
+                                              {actName}
+                                            </span>
+                                            {act.notes && (
+                                              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                                                {act.notes}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--primary-flare)' }}>
+                                            ₹{actCost.toLocaleString()}
+                                          </span>
+                                          <button
+                                            onClick={() => handleDeleteActivity(act.id)}
+                                            title="Delete Activity"
+                                            style={{
+                                              background: 'none',
+                                              border: 'none',
+                                              color: 'var(--muted-slate)',
+                                              cursor: 'pointer',
+                                              padding: '0.2rem',
+                                              display: 'flex',
+                                              alignItems: 'center'
+                                            }}
+                                          >
+                                            <Trash2 size={13} />
+                                          </button>
+                                        </div>
                                       </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
                           </div>
                         );
                       })}

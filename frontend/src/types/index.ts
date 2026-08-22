@@ -74,6 +74,7 @@ export interface TripDay {
   dayNumber: number;
   date: string;
   dayActivities?: DayActivity[];
+  activities?: DayActivity[];
 }
 
 export interface TripSection {

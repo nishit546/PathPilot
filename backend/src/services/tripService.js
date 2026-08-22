@@ -156,7 +156,8 @@ class TripService {
             const dayActivities = await dayActivityRepository.findByDayId(day.id);
             return {
               ...day,
-              activities: dayActivities
+              activities: dayActivities,
+              dayActivities: dayActivities
             };
           })
         );

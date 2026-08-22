@@ -517,58 +517,77 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
                               Day {day.dayNumber} — {day.date}
                             </span>
                             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                              {day.dayActivities?.length || 0} Activities
+                              {(day.dayActivities?.length || day.activities?.length || 0)} Activities
                             </span>
                           </div>
 
-                          {(!day.dayActivities || day.dayActivities.length === 0) ? (
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                              Free exploration day (No scheduled activities).
-                            </p>
-                          ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                              {day.dayActivities.map(act => (
-                                <div
-                                  key={act.id}
-                                  style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    padding: '0.55rem 0.85rem',
-                                    background: '#ffffff',
-                                    borderRadius: '6px',
-                                    border: '1px solid var(--border-silver)'
-                                  }}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                    <span
+                          {(() => {
+                            const actsList = (day.dayActivities && day.dayActivities.length > 0)
+                              ? day.dayActivities
+                              : (day.activities && day.activities.length > 0)
+                              ? day.activities
+                              : ((day as any).day_activities || []);
+
+                            if (actsList.length === 0) {
+                              return (
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                  Free exploration day (No scheduled activities).
+                                </p>
+                              );
+                            }
+
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                {actsList.map((act: any) => {
+                                  const actName = act.activity?.name || (act as any).name || (act as any).activityName || (act as any).title || 'Scheduled Activity';
+                                  const actCost = act.customCost !== undefined ? act.customCost : ((act as any).cost || act.activity?.cost || 0);
+                                  const actStart = act.startTime || (act as any).start_time || '10:00';
+                                  const actEnd = act.endTime || (act as any).end_time || '13:00';
+
+                                  return (
+                                    <div
+                                      key={act.id}
                                       style={{
-                                        fontSize: '0.72rem',
-                                        fontWeight: 700,
-                                        color: 'var(--secondary-horizon)',
-                                        background: 'var(--secondary-horizon-subtle)',
-                                        padding: '0.2rem 0.45rem',
-                                        borderRadius: '4px'
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        padding: '0.55rem 0.85rem',
+                                        background: '#ffffff',
+                                        borderRadius: '6px',
+                                        border: '1px solid var(--border-silver)'
                                       }}
                                     >
-                                      {act.startTime} - {act.endTime}
-                                    </span>
-                                    <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                      {act.activity?.name}
-                                    </span>
-                                    {act.notes && (
-                                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                        ({act.notes})
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                        <span
+                                          style={{
+                                            fontSize: '0.72rem',
+                                            fontWeight: 700,
+                                            color: 'var(--secondary-horizon)',
+                                            background: 'var(--secondary-horizon-subtle)',
+                                            padding: '0.2rem 0.45rem',
+                                            borderRadius: '4px'
+                                          }}
+                                        >
+                                          {actStart} - {actEnd}
+                                        </span>
+                                        <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                          {actName}
+                                        </span>
+                                        {act.notes && (
+                                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                            ({act.notes})
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-flare)' }}>
+                                        ₹{actCost.toLocaleString()}
                                       </span>
-                                    )}
-                                  </div>
-                                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-flare)' }}>
-                                    ₹{act.customCost?.toLocaleString()}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>
