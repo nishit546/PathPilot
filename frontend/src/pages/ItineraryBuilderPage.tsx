@@ -20,7 +20,9 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
-  Tag
+  Tag,
+  Globe,
+  Lock
 } from 'lucide-react';
 
 interface ItineraryBuilderPageProps {
@@ -358,8 +360,9 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
               >
                 {trip.status || 'UPCOMING'}
               </span>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                {trip.visibility === 'PUBLIC' ? '🌍 Public' : '🔒 Private'}
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                {trip.visibility === 'PUBLIC' ? <Globe size={14} color="var(--primary-flare)" /> : <Lock size={14} color="var(--text-muted)" />}
+                <span>{trip.visibility === 'PUBLIC' ? 'Public' : 'Private'}</span>
               </span>
             </div>
             <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
@@ -519,7 +522,7 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
                           </span>
                         </div>
                         <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.75)' }}>
-                          📅 {section.startDate} to {section.endDate} ({section.days?.length || 0} Days) | 💰 Allocated: ₹{section.budget?.toLocaleString()}
+                          {section.startDate} to {section.endDate} ({section.days?.length || 0} Days) | Allocated: ₹{section.budget?.toLocaleString()}
                         </span>
                       </div>
                     </div>

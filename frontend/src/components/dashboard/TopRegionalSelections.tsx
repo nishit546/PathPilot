@@ -568,8 +568,9 @@ export const TopRegionalSelections: React.FC = () => {
                       </div>
 
                       <div style={{ padding: '0.75rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                        <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.65rem', flex: 1 }}>
-                          📍 <strong>Highlight:</strong> {city.highlight}
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.65rem', flex: 1, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <Sparkles size={13} color="var(--primary-flare)" />
+                          <span><strong>Highlight:</strong> {city.highlight}</span>
                         </p>
 
                         <button
@@ -626,7 +627,10 @@ export const TopRegionalSelections: React.FC = () => {
                           >
                             {act.category}
                           </span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>⏱ {act.duration}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <Clock size={12} />
+                            <span>{act.duration}</span>
+                          </span>
                         </div>
                         <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                           {act.name}

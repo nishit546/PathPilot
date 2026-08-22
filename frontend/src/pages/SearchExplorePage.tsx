@@ -17,7 +17,10 @@ import {
   Clock,
   CheckCircle,
   Eye,
-  Plus
+  Plus,
+  Building2,
+  Ticket,
+  Flame
 } from 'lucide-react';
 
 interface SearchExplorePageProps {
@@ -177,10 +180,14 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
               fontWeight: activeTab === 'cities' ? 800 : 600,
               fontSize: '0.88rem',
               cursor: 'pointer',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem'
             }}
           >
-            🏙️ Destination Cities ({cities.length})
+            <Building2 size={16} />
+            <span>Destination Cities ({cities.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('activities')}
@@ -193,10 +200,14 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
               fontWeight: activeTab === 'activities' ? 800 : 600,
               fontSize: '0.88rem',
               cursor: 'pointer',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem'
             }}
           >
-            🎟️ Activities & Attractions ({activities.length})
+            <Ticket size={16} />
+            <span>Activities & Attractions ({activities.length})</span>
           </button>
         </div>
 
@@ -337,7 +348,10 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
                         fontWeight: 700
                       }}
                     >
-                      🔥 {city.popularity}% Popularity
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Flame size={13} />
+                        <span>{city.popularity}% Popularity</span>
+                      </span>
                     </div>
                   </div>
 
@@ -585,7 +599,10 @@ export const SearchExplorePage: React.FC<SearchExplorePageProps> = ({ onPlanTrip
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
               <div style={{ padding: '0.75rem', background: 'var(--bg-canvas)', borderRadius: 'var(--radius-md)' }}>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block' }}>RATING</span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#eab308' }}>★ {selectedActivityModal.rating || '4.8'}</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#eab308', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <Star size={16} fill="#eab308" color="#eab308" />
+                  <span>{selectedActivityModal.rating || '4.8'}</span>
+                </span>
               </div>
               <div style={{ padding: '0.75rem', background: 'var(--bg-canvas)', borderRadius: 'var(--radius-md)' }}>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block' }}>DURATION</span>

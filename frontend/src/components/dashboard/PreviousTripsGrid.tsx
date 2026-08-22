@@ -16,11 +16,11 @@ export const PreviousTripsGrid: React.FC<PreviousTripsGridProps> = ({ onViewTrip
   const getStatusBadgeStyle = (status: string = 'UPCOMING') => {
     switch (status.toUpperCase()) {
       case 'ONGOING':
-        return { bg: 'rgba(16, 185, 129, 0.12)', text: '#10b981', border: 'rgba(16, 185, 129, 0.3)', label: '🟢 Ongoing' };
+        return { bg: 'rgba(16, 185, 129, 0.12)', text: '#10b981', border: 'rgba(16, 185, 129, 0.3)', label: 'Ongoing' };
       case 'UPCOMING':
-        return { bg: 'rgba(96, 168, 192, 0.15)', text: 'var(--secondary-horizon-hover)', border: 'rgba(96, 168, 192, 0.35)', label: '✈️ Upcoming' };
+        return { bg: 'rgba(96, 168, 192, 0.15)', text: 'var(--secondary-horizon-hover)', border: 'rgba(96, 168, 192, 0.35)', label: 'Upcoming' };
       case 'COMPLETED':
-        return { bg: 'rgba(139, 92, 246, 0.12)', text: '#8b5cf6', border: 'rgba(139, 92, 246, 0.3)', label: '✓ Completed' };
+        return { bg: 'rgba(139, 92, 246, 0.12)', text: '#8b5cf6', border: 'rgba(139, 92, 246, 0.3)', label: 'Completed' };
       default:
         return { bg: 'rgba(144, 144, 144, 0.12)', text: '#64748b', border: 'rgba(144, 144, 144, 0.3)', label: 'Draft' };
     }

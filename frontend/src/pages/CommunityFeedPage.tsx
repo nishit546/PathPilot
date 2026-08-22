@@ -318,7 +318,7 @@ export const CommunityFeedPage: React.FC<CommunityFeedPageProps> = ({ onForkTrip
                           {post.trip.name || post.trip.title}
                         </span>
                         <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                          📅 {post.trip.startDate} → {post.trip.endDate} | 💰 Budget: ₹{post.trip.totalBudget?.toLocaleString()}
+                          {post.trip.startDate} → {post.trip.endDate} | Budget: ₹{post.trip.totalBudget?.toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -425,7 +425,7 @@ export const CommunityFeedPage: React.FC<CommunityFeedPageProps> = ({ onForkTrip
           isOpen={!!viewingSharedTrip}
           onClose={() => setViewingSharedTrip(null)}
           title={viewingSharedTrip.name || viewingSharedTrip.title || 'Public Trip Itinerary'}
-          subtitle={`🔒 Read-Only Community Itinerary (${viewingSharedTrip.startDate} → ${viewingSharedTrip.endDate})`}
+          subtitle={`Read-Only Community Itinerary (${viewingSharedTrip.startDate} → ${viewingSharedTrip.endDate})`}
           maxWidth="700px"
         >
           <div>
@@ -466,7 +466,7 @@ export const CommunityFeedPage: React.FC<CommunityFeedPageProps> = ({ onForkTrip
                 }}
               >
                 <Copy size={14} />
-                <span>{isForking ? 'Cloning to My Account...' : 'Copy Trip (Fork) 🍴'}</span>
+                <span>{isForking ? 'Cloning to My Account...' : 'Copy Trip (Fork)'}</span>
               </button>
             </div>
 
@@ -499,7 +499,7 @@ export const CommunityFeedPage: React.FC<CommunityFeedPageProps> = ({ onForkTrip
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                       <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                        📍 Stop {idx + 1}: {sec.city?.name || `City Stop`} ({sec.city?.country})
+                        Stop {idx + 1}: {sec.city?.name || `City Stop`} ({sec.city?.country})
                       </span>
                       <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                         {sec.startDate} → {sec.endDate}

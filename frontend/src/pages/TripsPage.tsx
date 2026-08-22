@@ -373,19 +373,23 @@ export const TripsPage: React.FC<TripsPageProps> = ({
                   {/* Destination stops tags */}
                   <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '1.25rem', flex: 1 }}>
                     {trip.sections && trip.sections.length > 0 ? (
-                      trip.sections.map(sec => (
+                      trip.sections.map((sec, sIdx) => (
                         <span
-                          key={sec.id}
+                          key={sIdx}
                           style={{
                             padding: '0.2rem 0.55rem',
                             background: 'var(--secondary-horizon-subtle)',
                             color: 'var(--secondary-horizon)',
                             borderRadius: 'var(--radius-full)',
                             fontSize: '0.72rem',
-                            fontWeight: 700
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.2rem'
                           }}
                         >
-                          📍 {sec.city?.name || 'City'}
+                          <MapPin size={11} />
+                          <span>{sec.city?.name || 'City'}</span>
                         </span>
                       ))
                     ) : (

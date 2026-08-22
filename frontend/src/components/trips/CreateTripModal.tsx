@@ -444,8 +444,8 @@ export const CreateTripModal: React.FC<CreateTripModalProps> = ({
                 value={visibility}
                 onChange={(e) => setVisibility(e.target.value as any)}
               >
-                <option value="PRIVATE">🔒 Private Trip</option>
-                <option value="PUBLIC">🌍 Public & Shared</option>
+                <option value="PRIVATE">Private Trip (Only You & Collaborators)</option>
+                <option value="PUBLIC">Public & Discoverable</option>
               </select>
             </div>
           </div>

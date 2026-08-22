@@ -613,7 +613,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
             </div>
           )}
 
-          {/* PRIMARY CTA: "✈ + Plan a Trip" (Travelers only) */}
+          {/* PRIMARY CTA: "+ Plan a Trip" (Travelers only) */}
           {!isAdmin && (
             <button
               className="btn-primary"

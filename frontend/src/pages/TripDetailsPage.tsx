@@ -19,7 +19,10 @@ import {
   CheckCircle,
   Copy,
   Clock,
-  PieChart
+  PieChart,
+  Globe,
+  Lock,
+  Receipt
 } from 'lucide-react';
 
 interface TripDetailsPageProps {
@@ -255,8 +258,9 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
               >
                 {trip.status || 'UPCOMING'}
               </span>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                {trip.visibility === 'PUBLIC' ? '🌍 Public Community Post' : '🔒 Private Journey'}
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                {trip.visibility === 'PUBLIC' ? <Globe size={15} color="var(--primary-flare)" /> : <Lock size={15} color="var(--text-muted)" />}
+                <span>{trip.visibility === 'PUBLIC' ? 'Public Community Post' : 'Private Journey'}</span>
               </span>
             </div>
             <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
@@ -330,10 +334,14 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
             fontWeight: activeTab === 'schedule' ? 800 : 600,
             fontSize: '0.95rem',
             cursor: 'pointer',
-            marginBottom: '-2px'
+            marginBottom: '-2px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem'
           }}
         >
-          📅 Day-by-Day Itinerary ({trip.sections?.length || 0} Stops)
+          <Calendar size={17} />
+          <span>Day-by-Day Itinerary ({trip.sections?.length || 0} Stops)</span>
         </button>
 
         <button
@@ -347,10 +355,14 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
             fontWeight: activeTab === 'expenses' ? 800 : 600,
             fontSize: '0.95rem',
             cursor: 'pointer',
-            marginBottom: '-2px'
+            marginBottom: '-2px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem'
           }}
         >
-          🧾 Expense Tracker ({expenses.length} Logged)
+          <Receipt size={17} />
+          <span>Expense Tracker ({expenses.length} Logged)</span>
         </button>
 
         <button
@@ -364,10 +376,14 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
             fontWeight: activeTab === 'budget' ? 800 : 600,
             fontSize: '0.95rem',
             cursor: 'pointer',
-            marginBottom: '-2px'
+            marginBottom: '-2px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem'
           }}
         >
-          💰 Live Budget Breakdown & Charts
+          <DollarSign size={17} />
+          <span>Live Budget Breakdown & Charts</span>
         </button>
       </div>
 
@@ -445,7 +461,7 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
                             {section.city?.name || `Stop #${sIdx + 1}`}, {section.city?.country}
                           </h3>
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            📅 {section.startDate} → {section.endDate} ({section.days?.length || 0} Days) | 💰 Stop Budget: ₹{section.budget?.toLocaleString()}
+                            {section.startDate} → {section.endDate} ({section.days?.length || 0} Days) | Stop Budget: ₹{section.budget?.toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -780,12 +796,12 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
                 value={expenseCategory}
                 onChange={(e) => setExpenseCategory(e.target.value)}
               >
-                <option value="STAY">🏨 Stay / Hotel</option>
-                <option value="TRANSPORT">✈️ Transport / Transit</option>
-                <option value="ACTIVITIES">🎟️ Activities & Tours</option>
-                <option value="MEALS">🍽️ Meals & Dining</option>
-                <option value="SHOPPING">🛍️ Shopping</option>
-                <option value="OTHER">📦 Other Expenses</option>
+                <option value="STAY">Stay / Hotel</option>
+                <option value="TRANSPORT">Transport / Transit</option>
+                <option value="ACTIVITIES">Activities & Tours</option>
+                <option value="MEALS">Meals & Dining</option>
+                <option value="SHOPPING">Shopping</option>
+                <option value="OTHER">Other Expenses</option>
               </select>
             </div>
 
@@ -868,7 +884,7 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
                   }}
                 >
                   <Copy size={16} />
-                  <span>{copySuccess ? 'Copied! ✓' : 'Copy'}</span>
+                  <span>{copySuccess ? 'Copied!' : 'Copy'}</span>
                 </button>
               </div>
             </div>
@@ -883,7 +899,7 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
                 lineHeight: 1.4
               }}
             >
-              🔒 <strong>Read-Only Protection:</strong> Visitors to this link cannot modify your trip or add expenses. They can view the day schedule and copy it to their personal PathPilot account.
+              <strong>Read-Only Protection:</strong> Visitors to this link cannot modify your trip or add expenses. They can view the day schedule and copy it to their personal PathPilot account.
             </div>
           </div>
         )}
