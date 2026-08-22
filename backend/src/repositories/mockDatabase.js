@@ -692,6 +692,20 @@ class MockDatabase {
       }
     ];
 
+    this.tripCollaborators = [];
+    this.tripActivityLogs = [];
+    this.notifications = [];
+    this.tripTemplates = [];
+    this.templateFavorites = [];
+    this.sharedExpenses = [];
+    this.sharedExpenseSplits = [];
+    this.settlements = [];
+    this.packingItems = [];
+    this.travelDocuments = [];
+    this.preparationTasks = [];
+    this.recentSearches = [];
+    this.travelSegments = [];
+
     // Sequence counters for ID generation
     this.counters = {
       users: 2,
@@ -703,7 +717,20 @@ class MockDatabase {
       dayActivities: 4,
       expenses: 4,
       communityPosts: 1,
-      sharedTrips: 1
+      sharedTrips: 1,
+      tripCollaborators: 0,
+      tripActivityLogs: 0,
+      notifications: 0,
+      tripTemplates: 0,
+      templateFavorites: 0,
+      sharedExpenses: 0,
+      sharedExpenseSplits: 0,
+      settlements: 0,
+      packingItems: 0,
+      travelDocuments: 0,
+      preparationTasks: 0,
+      recentSearches: 0,
+      travelSegments: 0
     };
   }
 

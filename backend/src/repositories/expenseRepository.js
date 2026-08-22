@@ -1,91 +1,184 @@
-const mockDb = require('./mockDatabase');
+const db = require('../config/database');
+const { mapRowToEntity, mapRowsToEntities } = require('../utils/dbHelper');
+const { parsePagination } = require('../utils/pagination');
+
+const normalizeCategory = (cat) => {
+  if (!cat) return 'other';
+  const c = String(cat).toLowerCase();
+  if (['transport', 'accommodation', 'food', 'activity', 'entry_fee', 'shopping', 'other'].includes(c)) {
+    return c;
+  }
+  if (['flight', 'train', 'bus', 'car', 'travel'].includes(c)) return 'transport';
+  if (['hotel', 'hostel', 'stay', 'airbnb'].includes(c)) return 'accommodation';
+  if (['dining', 'meal', 'restaurant', 'drinks'].includes(c)) return 'food';
+  if (['tour', 'sightseeing', 'ticket'].includes(c)) return 'activity';
+  return 'other';
+};
 
 class ExpenseRepository {
   async findById(id) {
-    const numId = Number(id);
-    const item = mockDb.expenses.find(e => e.id === numId);
-    return item ? { ...item } : null;
+    if (!id) return null;
+    const res = await db.query(
+      `SELECT * FROM public.budget_items WHERE id::text = $1::text;`,
+      [String(id)]
+    );
+    if (!res.rows[0]) return null;
+    const exp = mapRowToEntity(res.rows[0]);
+    exp.category = exp.category.toUpperCase();
+    return exp;
   }
 
-  async findByTripId(tripId, { category, sectionId, dayId } = {}) {
-    const numTripId = Number(tripId);
-    let result = mockDb.expenses.filter(e => e.tripId === numTripId);
+  async findByTripId(tripId, query = {}) {
+    const params = [String(tripId)];
+    const conditions = [`trip_id::text = $1::text`];
 
-    if (category) {
-      result = result.filter(e => e.category.toUpperCase() === category.toUpperCase());
+    if (query.category) {
+      const normCat = normalizeCategory(query.category);
+      params.push(normCat);
+      conditions.push(`category = $${params.length}`);
     }
 
-    if (sectionId) {
-      result = result.filter(e => e.sectionId === Number(sectionId));
+    if (query.sectionId) {
+      params.push(String(query.sectionId));
+      conditions.push(`section_id::text = $${params.length}::text`);
     }
 
-    if (dayId) {
-      result = result.filter(e => e.dayId === Number(dayId));
+    if (query.dayId) {
+      params.push(String(query.dayId));
+      conditions.push(`day_id::text = $${params.length}::text`);
     }
 
-    return result.sort((a, b) => new Date(b.date) - new Date(a.date)).map(e => ({ ...e }));
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
+
+    const countRes = await db.query(
+      `SELECT COUNT(*) FROM public.budget_items ${whereClause};`,
+      params
+    );
+    const total = parseInt(countRes.rows[0].count, 10);
+
+    const { page, limit, offset } = parsePagination(query);
+
+    params.push(limit, offset);
+    const sql = `
+      SELECT *
+      FROM public.budget_items
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length};
+    `;
+
+    const res = await db.query(sql, params);
+    const expenses = mapRowsToEntities(res.rows).map(exp => {
+      exp.category = exp.category.toUpperCase();
+      return exp;
+    });
+
+    expenses.expenses = expenses;
+    expenses.total = total;
+    expenses.page = page;
+    expenses.limit = limit;
+
+    return expenses;
   }
 
   async create(data) {
-    const id = mockDb.getNextId('expenses');
-    const now = new Date().toISOString();
+    const category = normalizeCategory(data.category);
+    const amount = Number(data.amount || 0);
 
-    const newExpense = {
-      id,
-      tripId: Number(data.tripId),
-      sectionId: data.sectionId ? Number(data.sectionId) : null,
-      dayId: data.dayId ? Number(data.dayId) : null,
-      category: data.category.toUpperCase(),
-      amount: Number(data.amount),
-      description: data.description || '',
-      date: data.date || new Date().toISOString().split('T')[0],
-      createdAt: now
-    };
+    const res = await db.query(
+      `INSERT INTO public.budget_items (
+        trip_id,
+        section_id,
+        day_id,
+        category,
+        description,
+        amount
+      ) VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6)
+      RETURNING *;`,
+      [
+        data.tripId,
+        data.sectionId || null,
+        data.dayId || null,
+        category,
+        (data.description || 'Expense').trim(),
+        amount
+      ]
+    );
 
-    mockDb.expenses.push(newExpense);
-    return { ...newExpense };
+    const exp = mapRowToEntity(res.rows[0]);
+    exp.category = exp.category.toUpperCase();
+    return exp;
   }
 
-  async update(id, updateData) {
-    const numId = Number(id);
-    const index = mockDb.expenses.findIndex(e => e.id === numId);
-    if (index === -1) return null;
+  async update(id, data) {
+    const existing = await this.findById(id);
+    if (!existing) return null;
 
-    const existing = mockDb.expenses[index];
-    const updated = {
-      ...existing,
-      ...updateData,
-      id: existing.id,
-      tripId: existing.tripId,
-      amount: updateData.amount !== undefined ? Number(updateData.amount) : existing.amount,
-      category: updateData.category ? updateData.category.toUpperCase() : existing.category
-    };
+    const updates = [];
+    const params = [];
 
-    mockDb.expenses[index] = updated;
-    return { ...updated };
+    if (data.category !== undefined) {
+      const cat = normalizeCategory(data.category);
+      params.push(cat);
+      updates.push(`category = $${params.length}`);
+    }
+    if (data.description !== undefined) {
+      params.push(data.description.trim());
+      updates.push(`description = $${params.length}`);
+    }
+    if (data.amount !== undefined) {
+      params.push(Number(data.amount));
+      updates.push(`amount = $${params.length}`);
+    }
+    if (data.sectionId !== undefined) {
+      params.push(data.sectionId || null);
+      updates.push(`section_id = $${params.length}::uuid`);
+    }
+    if (data.dayId !== undefined) {
+      params.push(data.dayId || null);
+      updates.push(`day_id = $${params.length}::uuid`);
+    }
+
+    if (updates.length === 0) return existing;
+
+    updates.push(`updated_at = now()`);
+    params.push(String(id));
+
+    const res = await db.query(
+      `UPDATE public.budget_items
+       SET ${updates.join(', ')}
+       WHERE id::text = $${params.length}::text
+       RETURNING *;`,
+      params
+    );
+
+    const exp = mapRowToEntity(res.rows[0]);
+    exp.category = exp.category.toUpperCase();
+    return exp;
   }
 
   async delete(id) {
-    const numId = Number(id);
-    const index = mockDb.expenses.findIndex(e => e.id === numId);
-    if (index === -1) return false;
-
-    mockDb.expenses.splice(index, 1);
-    return true;
+    if (!id) return false;
+    const res = await db.query(`DELETE FROM public.budget_items WHERE id::text = $1::text RETURNING id;`, [String(id)]);
+    return res.rowCount > 0;
   }
 
   async deleteByTripId(tripId) {
-    const numTripId = Number(tripId);
-    mockDb.expenses = mockDb.expenses.filter(e => e.tripId !== numTripId);
-    return true;
+    if (!tripId) return 0;
+    const res = await db.query(`DELETE FROM public.budget_items WHERE trip_id::text = $1::text;`, [String(tripId)]);
+    return res.rowCount;
   }
 
-  async count() {
-    return mockDb.expenses.length;
+  async deleteByDayId(dayId) {
+    if (!dayId) return 0;
+    const res = await db.query(`DELETE FROM public.budget_items WHERE day_id::text = $1::text;`, [String(dayId)]);
+    return res.rowCount;
   }
 
-  async totalAmount() {
-    return mockDb.expenses.reduce((sum, e) => sum + e.amount, 0);
+  async deleteBySectionId(sectionId) {
+    if (!sectionId) return 0;
+    const res = await db.query(`DELETE FROM public.budget_items WHERE section_id::text = $1::text;`, [String(sectionId)]);
+    return res.rowCount;
   }
 }
 

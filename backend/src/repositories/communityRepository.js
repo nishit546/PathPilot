@@ -1,45 +1,60 @@
-const mockDb = require('./mockDatabase');
+const db = require('../config/database');
+const { mapRowToEntity, mapRowsToEntities } = require('../utils/dbHelper');
 const { parsePagination } = require('../utils/pagination');
-const { parseSort } = require('../utils/sortHelper');
 
 class CommunityRepository {
   async findAll(query = {}) {
-    let result = [...mockDb.communityPosts];
+    const params = [];
+    const conditions = [];
+
+    if (query.search || query.q) {
+      const qStr = (query.search || query.q).trim().toLowerCase();
+      params.push(`%${qStr}%`);
+      const pIdx = params.length;
+      conditions.push(`(LOWER(cp.title) LIKE $${pIdx} OR LOWER(cp.content) LIKE $${pIdx})`);
+    }
 
     if (query.userId) {
-      result = result.filter(p => p.userId === Number(query.userId));
+      params.push(String(query.userId));
+      conditions.push(`cp.user_id::text = $${params.length}::text`);
     }
 
-    if (query.tripId) {
-      result = result.filter(p => p.tripId === Number(query.tripId));
-    }
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    if (query.search) {
-      const q = query.search.toLowerCase().trim();
-      result = result.filter(p =>
-        p.title.toLowerCase().includes(q) ||
-        p.content.toLowerCase().includes(q)
-      );
-    }
+    const countRes = await db.query(
+      `SELECT COUNT(*) FROM public.community_posts cp ${whereClause};`,
+      params
+    );
+    const total = parseInt(countRes.rows[0].count, 10);
 
-    const allowedSortFields = ['createdAt', 'updatedAt', 'title'];
-    const { sortBy, order } = parseSort(query.sortBy || (query.sort === 'oldest' ? 'createdAt' : undefined), query.order || (query.sort === 'oldest' ? 'asc' : undefined), allowedSortFields, 'createdAt', 'desc');
+    const { page, limit, offset } = parsePagination(query);
 
-    result.sort((a, b) => {
-      let valA = a[sortBy];
-      let valB = b[sortBy];
-      if (sortBy === 'createdAt' || sortBy === 'updatedAt') {
-        return order === 'asc' ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
+    params.push(limit, offset);
+    const sql = `
+      SELECT cp.*, p.first_name, p.last_name, p.avatar_url, p.city AS user_city, p.country AS user_country
+      FROM public.community_posts cp
+      LEFT JOIN public.profiles p ON p.id = cp.user_id
+      ${whereClause}
+      ORDER BY cp.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length};
+    `;
+
+    const res = await db.query(sql, params);
+    const posts = mapRowsToEntities(res.rows).map(post => {
+      if (post.firstName) {
+        post.user = {
+          id: post.userId,
+          name: `${post.firstName} ${post.lastName || ''}`.trim() || 'Traveler',
+          profilePhoto: post.avatarUrl,
+          city: post.userCity,
+          country: post.userCountry
+        };
       }
-      return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      return post;
     });
 
-    const total = result.length;
-    const { page, limit, offset } = parsePagination(query);
-    const paginated = result.slice(offset, offset + limit);
-
     return {
-      posts: paginated.map(p => ({ ...p })),
+      posts,
       total,
       page,
       limit
@@ -47,59 +62,98 @@ class CommunityRepository {
   }
 
   async findById(id) {
-    const numId = Number(id);
-    const post = mockDb.communityPosts.find(p => p.id === numId);
-    return post ? { ...post } : null;
+    if (!id) return null;
+    const res = await db.query(
+      `SELECT cp.*, p.first_name, p.last_name, p.avatar_url, p.city AS user_city, p.country AS user_country
+       FROM public.community_posts cp
+       LEFT JOIN public.profiles p ON p.id = cp.user_id
+       WHERE cp.id::text = $1::text;`,
+      [String(id)]
+    );
+    if (!res.rows[0]) return null;
+    const post = mapRowToEntity(res.rows[0]);
+    if (post.firstName) {
+      post.user = {
+        id: post.userId,
+        name: `${post.firstName} ${post.lastName || ''}`.trim() || 'Traveler',
+        profilePhoto: post.avatarUrl,
+        city: post.userCity,
+        country: post.userCountry
+      };
+    }
+    return post;
   }
 
   async create(data) {
-    const id = mockDb.getNextId('communityPosts');
-    const now = new Date().toISOString();
+    const res = await db.query(
+      `INSERT INTO public.community_posts (
+        user_id,
+        trip_id,
+        activity_id,
+        title,
+        content,
+        image_url
+      ) VALUES ($1::uuid, $2, $3, $4, $5, $6)
+      RETURNING *;`,
+      [
+        data.userId,
+        data.tripId || null,
+        data.activityId || null,
+        data.title.trim(),
+        data.content.trim(),
+        data.imageUrl || data.image_url || null
+      ]
+    );
 
-    const newPost = {
-      id,
-      userId: Number(data.userId),
-      tripId: data.tripId ? Number(data.tripId) : null,
-      title: data.title.trim(),
-      content: data.content.trim(),
-      imageUrl: data.imageUrl || null,
-      createdAt: now,
-      updatedAt: now
-    };
-
-    mockDb.communityPosts.push(newPost);
-    return { ...newPost };
+    return this.findById(res.rows[0].id);
   }
 
-  async update(id, updateData) {
-    const numId = Number(id);
-    const index = mockDb.communityPosts.findIndex(p => p.id === numId);
-    if (index === -1) return null;
+  async update(id, data) {
+    const existing = await this.findById(id);
+    if (!existing) return null;
 
-    const existing = mockDb.communityPosts[index];
-    const updated = {
-      ...existing,
-      ...updateData,
-      id: existing.id,
-      userId: existing.userId,
-      updatedAt: new Date().toISOString()
-    };
+    const updates = [];
+    const params = [];
 
-    mockDb.communityPosts[index] = updated;
-    return { ...updated };
+    if (data.title !== undefined) {
+      params.push(data.title.trim());
+      updates.push(`title = $${params.length}`);
+    }
+    if (data.content !== undefined) {
+      params.push(data.content.trim());
+      updates.push(`content = $${params.length}`);
+    }
+    if (data.imageUrl !== undefined || data.image_url !== undefined) {
+      params.push(data.imageUrl || data.image_url);
+      updates.push(`image_url = $${params.length}`);
+    }
+    if (data.likesCount !== undefined) {
+      params.push(Number(data.likesCount));
+      updates.push(`likes_count = $${params.length}`);
+    }
+
+    if (updates.length === 0) return existing;
+
+    updates.push(`updated_at = now()`);
+    params.push(String(id));
+
+    await db.query(
+      `UPDATE public.community_posts
+       SET ${updates.join(', ')}
+       WHERE id::text = $${params.length}::text;`,
+      params
+    );
+
+    return this.findById(id);
   }
 
   async delete(id) {
-    const numId = Number(id);
-    const index = mockDb.communityPosts.findIndex(p => p.id === numId);
-    if (index === -1) return false;
-
-    mockDb.communityPosts.splice(index, 1);
-    return true;
-  }
-
-  async count() {
-    return mockDb.communityPosts.length;
+    if (!id) return false;
+    const res = await db.query(
+      `DELETE FROM public.community_posts WHERE id::text = $1::text RETURNING id;`,
+      [String(id)]
+    );
+    return res.rowCount > 0;
   }
 }
 

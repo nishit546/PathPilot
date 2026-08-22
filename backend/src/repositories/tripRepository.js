@@ -1,59 +1,82 @@
-const mockDb = require('./mockDatabase');
+const db = require('../config/database');
+const { mapRowToEntity, mapRowsToEntities } = require('../utils/dbHelper');
 const { parsePagination } = require('../utils/pagination');
-const { parseSort } = require('../utils/sortHelper');
 
 class TripRepository {
   async findById(id) {
-    const numId = Number(id);
-    const trip = mockDb.trips.find(t => t.id === numId);
-    return trip ? { ...trip } : null;
+    if (!id) return null;
+    const res = await db.query(
+      `SELECT t.*, p.first_name AS owner_first_name, p.last_name AS owner_last_name, p.email AS owner_email
+       FROM public.trips t
+       LEFT JOIN public.profiles p ON p.id = t.user_id
+       WHERE t.id::text = $1::text;`,
+      [String(id)]
+    );
+    if (!res.rows[0]) return null;
+    const item = mapRowToEntity(res.rows[0]);
+    if (res.rows[0].owner_first_name || res.rows[0].owner_email) {
+      item.user = {
+        id: item.userId,
+        name: `${res.rows[0].owner_first_name || ''} ${res.rows[0].owner_last_name || ''}`.trim() || 'User',
+        email: res.rows[0].owner_email
+      };
+    }
+    return item;
   }
 
   async findByUserId(userId, query = {}) {
-    const numUserId = Number(userId);
-    let result = mockDb.trips.filter(t => t.userId === numUserId);
+    const params = [String(userId)];
+    const conditions = [`(t.user_id::text = $1::text OR EXISTS (
+      SELECT 1 FROM public.trip_collaborators tc WHERE tc.trip_id = t.id AND tc.user_id::text = $1::text
+    ))`];
 
-    // Search across name and description
-    if (query.search) {
-      const q = query.search.toLowerCase().trim();
-      result = result.filter(t =>
-        t.name.toLowerCase().includes(q) ||
-        (t.description && t.description.toLowerCase().includes(q))
-      );
+    if (query.search || query.q) {
+      const qStr = (query.search || query.q).trim().toLowerCase();
+      params.push(`%${qStr}%`);
+      const pIdx = params.length;
+      conditions.push(`(LOWER(t.title) LIKE $${pIdx} OR LOWER(COALESCE(t.description, '')) LIKE $${pIdx})`);
     }
 
-    // Visibility filter
     if (query.visibility) {
-      result = result.filter(t => t.visibility === query.visibility.toUpperCase());
+      params.push(query.visibility.toLowerCase());
+      conditions.push(`LOWER(t.visibility) = $${params.length}`);
     }
 
-    // Sorting allowlist
-    const allowedSortFields = ['startDate', 'endDate', 'createdAt', 'updatedAt', 'name', 'totalBudget'];
-    const { sortBy, order } = parseSort(query.sortBy, query.order, allowedSortFields, 'createdAt', 'desc');
+    if (query.status) {
+      params.push(query.status.toLowerCase());
+      conditions.push(`LOWER(t.status) = $${params.length}`);
+    }
 
-    result.sort((a, b) => {
-      let valA = a[sortBy];
-      let valB = b[sortBy];
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
-      if (sortBy === 'startDate' || sortBy === 'endDate' || sortBy === 'createdAt' || sortBy === 'updatedAt') {
-        const timeA = new Date(valA).getTime();
-        const timeB = new Date(valB).getTime();
-        return order === 'asc' ? timeA - timeB : timeB - timeA;
-      }
+    const countRes = await db.query(
+      `SELECT COUNT(*) FROM public.trips t ${whereClause};`,
+      params
+    );
+    const total = parseInt(countRes.rows[0].count, 10);
 
-      if (typeof valA === 'string') {
-        return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      }
-
-      return order === 'asc' ? valA - valB : valB - valA;
-    });
-
-    const total = result.length;
     const { page, limit, offset } = parsePagination(query);
-    const paginated = result.slice(offset, offset + limit);
 
+    let orderBy = 't.created_at DESC';
+    if (query.sortBy) {
+      const order = (query.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+      if (query.sortBy.toLowerCase() === 'name' || query.sortBy.toLowerCase() === 'title') orderBy = `t.title ${order}`;
+      if (query.sortBy.toLowerCase() === 'startdate' || query.sortBy.toLowerCase() === 'start_date') orderBy = `t.start_date ${order}`;
+      if (query.sortBy.toLowerCase() === 'budget' || query.sortBy.toLowerCase() === 'totalbudget') orderBy = `t.overall_budget ${order}`;
+    }
+
+    params.push(limit, offset);
+    const sql = `
+      SELECT t.*
+      FROM public.trips t
+      ${whereClause}
+      ORDER BY ${orderBy}
+      LIMIT $${params.length - 1} OFFSET $${params.length};
+    `;
+
+    const res = await db.query(sql, params);
     return {
-      trips: paginated.map(t => ({ ...t })),
+      trips: mapRowsToEntities(res.rows),
       total,
       page,
       limit
@@ -61,98 +84,163 @@ class TripRepository {
   }
 
   async findPublicTrips(query = {}) {
-    let result = mockDb.trips.filter(t => t.visibility === 'PUBLIC');
+    const params = [];
+    const conditions = [`t.visibility = 'public'`];
 
-    if (query.search) {
-      const q = query.search.toLowerCase().trim();
-      result = result.filter(t =>
-        t.name.toLowerCase().includes(q) ||
-        (t.description && t.description.toLowerCase().includes(q))
-      );
+    if (query.search || query.q) {
+      const qStr = (query.search || query.q).trim().toLowerCase();
+      params.push(`%${qStr}%`);
+      const pIdx = params.length;
+      conditions.push(`(LOWER(t.title) LIKE $${pIdx} OR LOWER(COALESCE(t.description, '')) LIKE $${pIdx})`);
     }
 
-    const allowedSortFields = ['startDate', 'endDate', 'createdAt', 'name', 'totalBudget'];
-    const { sortBy, order } = parseSort(query.sortBy, query.order, allowedSortFields, 'createdAt', 'desc');
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
-    result.sort((a, b) => {
-      let valA = a[sortBy];
-      let valB = b[sortBy];
-      if (sortBy === 'startDate' || sortBy === 'endDate' || sortBy === 'createdAt') {
-        return order === 'asc' ? new Date(valA) - new Date(valB) : new Date(valB) - new Date(valA);
+    const countRes = await db.query(
+      `SELECT COUNT(*) FROM public.trips t ${whereClause};`,
+      params
+    );
+    const total = parseInt(countRes.rows[0].count, 10);
+
+    const { page, limit, offset } = parsePagination(query);
+
+    params.push(limit, offset);
+    const sql = `
+      SELECT t.*, p.first_name AS owner_first_name, p.last_name AS owner_last_name
+      FROM public.trips t
+      LEFT JOIN public.profiles p ON p.id = t.user_id
+      ${whereClause}
+      ORDER BY t.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length};
+    `;
+
+    const res = await db.query(sql, params);
+    const trips = mapRowsToEntities(res.rows).map(t => {
+      if (t.ownerFirstName) {
+        t.owner = {
+          name: `${t.ownerFirstName} ${t.ownerLastName || ''}`.trim()
+        };
       }
-      if (typeof valA === 'string') {
-        return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      }
-      return order === 'asc' ? valA - valB : valB - valA;
+      return t;
     });
 
-    const total = result.length;
-    const { page, limit, offset } = parsePagination(query);
-    const paginated = result.slice(offset, offset + limit);
-
     return {
-      trips: paginated.map(t => ({ ...t })),
+      trips,
       total,
       page,
       limit
     };
   }
 
-  async findAll() {
-    return mockDb.trips.map(t => ({ ...t }));
-  }
-
   async create(tripData) {
-    const id = mockDb.getNextId('trips');
-    const now = new Date().toISOString();
-    const newTrip = {
-      id,
-      userId: Number(tripData.userId),
-      name: tripData.name.trim(),
-      description: tripData.description ? tripData.description.trim() : '',
-      coverPhoto: tripData.coverPhoto || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80',
-      startDate: tripData.startDate,
-      endDate: tripData.endDate,
-      totalBudget: Number(tripData.totalBudget) || 0,
-      visibility: tripData.visibility || 'PRIVATE',
-      createdAt: now,
-      updatedAt: now
-    };
+    const title = (tripData.name || tripData.title || 'Untitled Trip').trim();
+    const budget = tripData.totalBudget !== undefined ? Number(tripData.totalBudget) : (tripData.budget !== undefined ? Number(tripData.budget) : 0);
+    const visibility = (tripData.visibility || 'private').toLowerCase();
+    const status = (tripData.status || 'upcoming').toLowerCase();
 
-    mockDb.trips.push(newTrip);
-    return { ...newTrip };
+    const res = await db.query(
+      `INSERT INTO public.trips (
+        user_id,
+        title,
+        description,
+        start_date,
+        end_date,
+        overall_budget,
+        total_budget,
+        visibility,
+        status,
+        cover_image_url,
+        cover_photo
+      ) VALUES ($1::uuid, $2, $3, $4::date, $5::date, $6, $6, $7, $8, $9, $9)
+      RETURNING *;`,
+      [
+        tripData.userId,
+        title,
+        tripData.description || null,
+        tripData.startDate,
+        tripData.endDate,
+        budget,
+        visibility,
+        status,
+        tripData.coverPhoto || tripData.coverImage || null
+      ]
+    );
+
+    return mapRowToEntity(res.rows[0]);
   }
 
   async update(id, updateData) {
-    const numId = Number(id);
-    const index = mockDb.trips.findIndex(t => t.id === numId);
-    if (index === -1) return null;
+    const existing = await this.findById(id);
+    if (!existing) return null;
 
-    const existing = mockDb.trips[index];
-    const updated = {
-      ...existing,
-      ...updateData,
-      id: existing.id,
-      userId: existing.userId,
-      totalBudget: updateData.totalBudget !== undefined ? Number(updateData.totalBudget) : existing.totalBudget,
-      updatedAt: new Date().toISOString()
-    };
+    const updates = [];
+    const params = [];
 
-    mockDb.trips[index] = updated;
-    return { ...updated };
+    if (updateData.name !== undefined || updateData.title !== undefined) {
+      const title = (updateData.name || updateData.title).trim();
+      params.push(title);
+      updates.push(`title = $${params.length}`);
+    }
+
+    if (updateData.description !== undefined) {
+      params.push(updateData.description);
+      updates.push(`description = $${params.length}`);
+    }
+
+    if (updateData.startDate !== undefined) {
+      params.push(updateData.startDate);
+      updates.push(`start_date = $${params.length}::date`);
+    }
+
+    if (updateData.endDate !== undefined) {
+      params.push(updateData.endDate);
+      updates.push(`end_date = $${params.length}::date`);
+    }
+
+    if (updateData.totalBudget !== undefined || updateData.budget !== undefined) {
+      const budget = updateData.totalBudget !== undefined ? Number(updateData.totalBudget) : Number(updateData.budget);
+      params.push(budget);
+      updates.push(`overall_budget = $${params.length}`);
+      updates.push(`total_budget = $${params.length}`);
+    }
+
+    if (updateData.visibility !== undefined) {
+      params.push(updateData.visibility.toLowerCase());
+      updates.push(`visibility = $${params.length}`);
+    }
+
+    if (updateData.status !== undefined) {
+      params.push(updateData.status.toLowerCase());
+      updates.push(`status = $${params.length}`);
+    }
+
+    if (updateData.coverPhoto !== undefined || updateData.coverImage !== undefined) {
+      const photo = updateData.coverPhoto || updateData.coverImage;
+      params.push(photo);
+      updates.push(`cover_image_url = $${params.length}`);
+      updates.push(`cover_photo = $${params.length}`);
+    }
+
+    if (updates.length === 0) return existing;
+
+    updates.push(`updated_at = now()`);
+    params.push(String(id));
+
+    const res = await db.query(
+      `UPDATE public.trips
+       SET ${updates.join(', ')}
+       WHERE id::text = $${params.length}::text
+       RETURNING *;`,
+      params
+    );
+
+    return mapRowToEntity(res.rows[0]);
   }
 
   async delete(id) {
-    const numId = Number(id);
-    const index = mockDb.trips.findIndex(t => t.id === numId);
-    if (index === -1) return false;
-
-    mockDb.trips.splice(index, 1);
-    return true;
-  }
-
-  async count() {
-    return mockDb.trips.length;
+    if (!id) return false;
+    const res = await db.query(`DELETE FROM public.trips WHERE id::text = $1::text RETURNING id;`, [String(id)]);
+    return res.rowCount > 0;
   }
 }
 

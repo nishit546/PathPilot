@@ -1,74 +1,134 @@
-const mockDb = require('./mockDatabase');
+const db = require('../config/database');
+const { mapRowToEntity, mapRowsToEntities } = require('../utils/dbHelper');
 const { parsePagination } = require('../utils/pagination');
-const { parseSort } = require('../utils/sortHelper');
 
 class CityRepository {
-  async findAll(query = {}) {
-    let result = [...mockDb.cities];
+  async findById(id) {
+    if (!id) return null;
+    const res = await db.query(
+      `SELECT * FROM public.cities WHERE id::text = $1::text;`,
+      [String(id)]
+    );
+    if (!res.rows[0]) return null;
+    return mapRowToEntity(res.rows[0]);
+  }
 
-    if (query.search) {
-      const q = query.search.toLowerCase().trim();
-      result = result.filter(c =>
-        c.name.toLowerCase().includes(q) ||
-        c.country.toLowerCase().includes(q) ||
-        c.region.toLowerCase().includes(q) ||
-        (c.description && c.description.toLowerCase().includes(q))
-      );
+  async findAll(query = {}) {
+    const params = [];
+    const conditions = [];
+
+    if (query.search || query.q) {
+      const qStr = (query.search || query.q).trim().toLowerCase();
+      params.push(`%${qStr}%`);
+      const pIdx = params.length;
+      conditions.push(`(LOWER(name) LIKE $${pIdx} OR LOWER(country) LIKE $${pIdx} OR LOWER(COALESCE(state_region, '')) LIKE $${pIdx})`);
     }
 
     if (query.country) {
-      result = result.filter(c => c.country.toLowerCase() === query.country.toLowerCase().trim());
+      params.push(`%${query.country.trim().toLowerCase()}%`);
+      conditions.push(`LOWER(country) LIKE $${params.length}`);
     }
 
     if (query.region) {
-      result = result.filter(c => c.region.toLowerCase() === query.region.toLowerCase().trim());
+      params.push(`%${query.region.trim().toLowerCase()}%`);
+      conditions.push(`LOWER(COALESCE(state_region, '')) LIKE $${params.length}`);
     }
 
-    if (query.minPopularity !== undefined && query.minPopularity !== null && query.minPopularity !== '') {
-      const min = Number(query.minPopularity);
-      if (!isNaN(min)) {
-        result = result.filter(c => c.popularity >= min);
-      }
-    }
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const allowedSortFields = ['popularity', 'costIndex', 'name', 'country', 'region'];
-    const { sortBy, order } = parseSort(query.sortBy, query.order, allowedSortFields, 'popularity', 'desc');
+    const countRes = await db.query(`SELECT COUNT(*) FROM public.cities ${whereClause};`, params);
+    const total = parseInt(countRes.rows[0].count, 10);
 
-    result.sort((a, b) => {
-      let valA = a[sortBy];
-      let valB = b[sortBy];
-      if (typeof valA === 'string') {
-        return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      }
-      return order === 'asc' ? valA - valB : valB - valA;
-    });
-
-    const total = result.length;
     const { page, limit, offset } = parsePagination(query);
-    const paginated = result.slice(offset, offset + limit);
 
+    let orderBy = 'name ASC';
+    if (query.sortBy) {
+      const order = (query.order || 'ASC').toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+      if (query.sortBy.toLowerCase() === 'name') orderBy = `name ${order}`;
+      if (query.sortBy.toLowerCase() === 'country') orderBy = `country ${order}`;
+      if (query.sortBy.toLowerCase() === 'created_at' || query.sortBy.toLowerCase() === 'createdat') orderBy = `created_at ${order}`;
+    }
+
+    params.push(limit, offset);
+    const sql = `
+      SELECT *
+      FROM public.cities
+      ${whereClause}
+      ORDER BY ${orderBy}
+      LIMIT $${params.length - 1} OFFSET $${params.length};
+    `;
+
+    const res = await db.query(sql, params);
     return {
-      cities: paginated.map(c => ({ ...c })),
+      cities: mapRowsToEntities(res.rows),
       total,
       page,
       limit
     };
   }
 
-  async findById(id) {
-    const numId = Number(id);
-    const city = mockDb.cities.find(c => c.id === numId);
-    return city ? { ...city } : null;
+  async create(data) {
+    const res = await db.query(
+      `INSERT INTO public.cities (
+        name,
+        country,
+        state_region,
+        description,
+        image_url,
+        latitude,
+        longitude
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *;`,
+      [
+        data.name.trim(),
+        data.country.trim(),
+        data.region || data.stateRegion || null,
+        data.description || null,
+        data.imageUrl || data.image_url || data.coverImage || null,
+        data.latitude !== undefined ? data.latitude : null,
+        data.longitude !== undefined ? data.longitude : null
+      ]
+    );
+
+    return mapRowToEntity(res.rows[0]);
   }
 
-  async findByName(name) {
-    if (!name) return null;
-    const city = mockDb.cities.find(c => c.name.toLowerCase() === name.toLowerCase().trim());
-    return city ? { ...city } : null;
+  async update(id, data) {
+    const existing = await this.findById(id);
+    if (!existing) return null;
+
+    const res = await db.query(
+      `UPDATE public.cities
+       SET
+         name = COALESCE($1, name),
+         country = COALESCE($2, country),
+         state_region = COALESCE($3, state_region),
+         description = COALESCE($4, description),
+         image_url = COALESCE($5, image_url),
+         latitude = COALESCE($6, latitude),
+         longitude = COALESCE($7, longitude),
+         updated_at = now()
+       WHERE id = $8::uuid
+       RETURNING *;`,
+      [
+        data.name || null,
+        data.country || null,
+        data.region || data.stateRegion || null,
+        data.description || null,
+        data.imageUrl || data.image_url || data.coverImage || null,
+        data.latitude !== undefined ? data.latitude : null,
+        data.longitude !== undefined ? data.longitude : null,
+        id
+      ]
+    );
+
+    return mapRowToEntity(res.rows[0]);
   }
 
-  async count() {
-    return mockDb.cities.length;
+  async delete(id) {
+    if (!id) return false;
+    const res = await db.query(`DELETE FROM public.cities WHERE id = $1::uuid RETURNING id;`, [id]);
+    return res.rowCount > 0;
   }
 }
 
