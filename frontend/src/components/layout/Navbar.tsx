@@ -1,7 +1,8 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTravel } from '../../context/TravelContext';
-import { Compass, Plus, Globe, MapPin, Search, Calendar, Users, Shield, User, LogOut } from 'lucide-react';
+import { Logo } from '../common/Logo';
+import { Plus, Globe, MapPin, Search, Calendar, Users, Shield, LogOut } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
@@ -20,16 +21,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
     { id: 'explore', label: 'Explore', icon: Search },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'community', label: 'Community', icon: Users },
-    { id: 'profile', label: 'Profile', icon: User },
     ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Shield }] : [])
   ];
+
+  const isProfileActive = activeTab === 'profile';
 
   return (
     <header
       style={{
         background: '#ffffff',
         borderBottom: '1px solid var(--border-silver)',
-        padding: '0.75rem 2rem',
+        padding: '0.65rem 2rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -42,24 +44,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
       {/* Brand Logo & Title */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           onClick={() => onSelectTab('dashboard')}
         >
-          <div
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              background: 'var(--primary-flare)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              boxShadow: '0 4px 12px rgba(255, 72, 0, 0.25)'
-            }}
-          >
-            <Compass size={22} />
-          </div>
+          <Logo size={42} />
           <div>
             <span
               style={{
@@ -147,17 +135,22 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
           <span>+ Plan a trip</span>
         </button>
 
-        {/* User Profile Pill & Logout */}
+        {/* User Profile Pill & Logout (Click to open Profile) */}
         {currentUser && (
           <div
+            onClick={() => onSelectTab('profile')}
+            title="Click to view & edit your profile"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.65rem',
               padding: '0.25rem 0.65rem 0.25rem 0.25rem',
-              background: '#f2f2f2',
+              background: isProfileActive ? 'var(--primary-flare-subtle)' : '#f2f2f2',
               borderRadius: 'var(--radius-full)',
-              border: '1px solid var(--border-silver)'
+              border: `1.5px solid ${isProfileActive ? 'var(--primary-flare)' : 'var(--border-silver)'}`,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: isProfileActive ? '0 0 0 3px rgba(255, 72, 0, 0.15)' : 'none'
             }}
           >
             <img
@@ -169,11 +162,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
                 borderRadius: '50%',
                 objectFit: 'cover',
                 background: '#ffffff',
-                border: '1px solid var(--border-silver)'
+                border: `1.5px solid ${isProfileActive ? 'var(--primary-flare)' : 'var(--border-silver)'}`
               }}
             />
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <span
+                style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  color: isProfileActive ? 'var(--primary-flare)' : 'var(--text-primary)'
+                }}
+              >
                 {currentUser.name}
               </span>
               <span style={{ fontSize: '0.68rem', color: 'var(--secondary-horizon)', fontWeight: 700, textTransform: 'uppercase' }}>
@@ -181,7 +180,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onSelectTab }) => {
               </span>
             </div>
             <button
-              onClick={() => logout()}
+              onClick={(e) => {
+                e.stopPropagation();
+                logout();
+              }}
               title="Log Out"
               style={{
                 background: 'none',
