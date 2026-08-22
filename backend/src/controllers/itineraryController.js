@@ -43,6 +43,11 @@ const getDayById = asyncHandler(async (req, res) => {
   return sendSuccess(res, 'Day details retrieved successfully', { day }, 200);
 });
 
+const getTripDays = asyncHandler(async (req, res) => {
+  const days = await itineraryService.getTripDays(req.params.tripId, req.user ? req.user.id : null);
+  return sendSuccess(res, 'Trip days retrieved successfully', { days, count: days.length }, 200);
+});
+
 module.exports = {
   getTripSections,
   getSectionById,
@@ -51,5 +56,6 @@ module.exports = {
   deleteSection,
   reorderSections,
   getSectionDays,
-  getDayById
+  getDayById,
+  getTripDays
 };

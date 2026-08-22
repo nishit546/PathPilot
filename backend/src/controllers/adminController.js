@@ -12,12 +12,12 @@ const getUsers = asyncHandler(async (req, res) => {
 });
 
 const blockUser = asyncHandler(async (req, res) => {
-  const targetId = Number(req.params.id);
-  if (isNaN(targetId) || targetId <= 0) {
+  const targetId = req.params.id;
+  if (!targetId) {
     throw ApiError.badRequest('Invalid user ID parameter.');
   }
 
-  if (targetId === req.user.id) {
+  if (String(targetId) === String(req.user.id)) {
     throw ApiError.badRequest('You cannot block your own administrator account.');
   }
 
@@ -26,7 +26,7 @@ const blockUser = asyncHandler(async (req, res) => {
     throw ApiError.notFound('User not found.');
   }
 
-  if (user.role === 'ADMIN') {
+  if (String(user.role || '').toUpperCase() === 'ADMIN') {
     throw ApiError.forbidden('Administrator accounts cannot be blocked.');
   }
 
@@ -39,8 +39,8 @@ const blockUser = asyncHandler(async (req, res) => {
 });
 
 const unblockUser = asyncHandler(async (req, res) => {
-  const targetId = Number(req.params.id);
-  if (isNaN(targetId) || targetId <= 0) {
+  const targetId = req.params.id;
+  if (!targetId) {
     throw ApiError.badRequest('Invalid user ID parameter.');
   }
 

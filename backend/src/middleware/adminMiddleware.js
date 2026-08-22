@@ -5,7 +5,7 @@ const ApiError = require('../utils/ApiError');
  * Must be placed after `authMiddleware`.
  */
 const adminMiddleware = (req, res, next) => {
-  if (!req.user || req.user.role !== 'ADMIN') {
+  if (!req.user || String(req.user.role || '').toUpperCase() !== 'ADMIN') {
     return next(ApiError.forbidden('Access denied. Administrator privileges required.'));
   }
   next();

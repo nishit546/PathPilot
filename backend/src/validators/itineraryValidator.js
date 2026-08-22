@@ -1,9 +1,10 @@
 const { z } = require('zod');
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+const idSchema = z.union([z.string().min(1), z.number()]);
 
 const createSectionSchema = z.object({
-  cityId: z.number().int().positive('cityId must be a valid positive integer'),
+  cityId: idSchema,
   startDate: z.string().regex(dateRegex, 'startDate must be in YYYY-MM-DD format'),
   endDate: z.string().regex(dateRegex, 'endDate must be in YYYY-MM-DD format'),
   budget: z.number().min(0, 'budget must be at least 0').optional().default(0),
@@ -16,7 +17,7 @@ const createSectionSchema = z.object({
 });
 
 const updateSectionSchema = z.object({
-  cityId: z.number().int().positive().optional(),
+  cityId: idSchema.optional(),
   startDate: z.string().regex(dateRegex, 'startDate must be in YYYY-MM-DD format').optional(),
   endDate: z.string().regex(dateRegex, 'endDate must be in YYYY-MM-DD format').optional(),
   budget: z.number().min(0).optional(),
@@ -32,7 +33,7 @@ const updateSectionSchema = z.object({
 });
 
 const reorderSectionsSchema = z.object({
-  sectionIds: z.array(z.number().int().positive()).min(1, 'sectionIds must contain at least 1 ID')
+  sectionIds: z.array(idSchema).min(1, 'sectionIds must contain at least 1 ID')
 });
 
 module.exports = {

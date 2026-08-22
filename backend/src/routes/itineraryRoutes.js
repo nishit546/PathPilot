@@ -9,6 +9,7 @@ const router = express.Router();
 // Direct section endpoints
 router.get('/sections/:id', authMiddleware, itineraryController.getSectionById);
 router.put('/sections/:id', authMiddleware, validate(updateSectionSchema), itineraryController.updateSection);
+router.patch('/sections/:id', authMiddleware, validate(updateSectionSchema), itineraryController.updateSection);
 router.delete('/sections/:id', authMiddleware, itineraryController.deleteSection);
 
 // Direct day endpoints

@@ -22,9 +22,21 @@ const getProfileTrips = asyncHandler(async (req, res) => {
   return sendSuccess(res, 'User trips retrieved and categorized successfully', tripSummary, 200);
 });
 
+const getPreferences = asyncHandler(async (req, res) => {
+  const preferences = await userService.getPreferences(req.user.id);
+  return sendSuccess(res, 'User travel preferences retrieved successfully', { preferences }, 200);
+});
+
+const updatePreferences = asyncHandler(async (req, res) => {
+  const preferences = await userService.updatePreferences(req.user.id, req.body);
+  return sendSuccess(res, 'User travel preferences updated successfully', { preferences }, 200);
+});
+
 module.exports = {
   getProfile,
   updateProfile,
   deleteProfile,
-  getProfileTrips
+  getProfileTrips,
+  getPreferences,
+  updatePreferences
 };

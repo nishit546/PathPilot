@@ -1,9 +1,10 @@
 const { z } = require('zod');
 
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const idSchema = z.union([z.string().min(1), z.number()]);
 
 const createDayActivitySchema = z.object({
-  activityId: z.number().int().positive('activityId must be a valid positive integer'),
+  activityId: idSchema,
   startTime: z.string().regex(timeRegex, 'startTime must be in HH:mm 24-hour format (e.g., 10:00)').optional().nullable(),
   endTime: z.string().regex(timeRegex, 'endTime must be in HH:mm 24-hour format (e.g., 12:30)').optional().nullable(),
   customCost: z.number().min(0, 'customCost cannot be negative').optional().nullable(),
@@ -20,7 +21,7 @@ const createDayActivitySchema = z.object({
 });
 
 const updateDayActivitySchema = z.object({
-  activityId: z.number().int().positive().optional(),
+  activityId: idSchema.optional(),
   startTime: z.string().regex(timeRegex, 'startTime must be in HH:mm 24-hour format').optional().nullable(),
   endTime: z.string().regex(timeRegex, 'endTime must be in HH:mm 24-hour format').optional().nullable(),
   customCost: z.number().min(0).optional().nullable(),
@@ -37,7 +38,7 @@ const updateDayActivitySchema = z.object({
 });
 
 const reorderDayActivitiesSchema = z.object({
-  activityIds: z.array(z.number().int().positive()).min(1, 'activityIds must contain at least 1 ID')
+  activityIds: z.array(idSchema).min(1, 'activityIds must contain at least 1 ID')
 });
 
 module.exports = {

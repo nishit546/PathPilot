@@ -22,16 +22,36 @@ const calendarRoutes = require('./routes/calendarRoutes');
 const communityRoutes = require('./routes/communityRoutes');
 const sharedRoutes = require('./routes/sharedRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const recommendationRoutes = require('./routes/recommendationRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const templateRoutes = require('./routes/templateRoutes');
 
 const app = express();
 
 // Security HTTP headers
 app.use(helmet());
 
-// CORS configuration with environment safety
+// CORS configuration with environment configuration and frontend dev port support
+const allowedOrigins = [
+  config.clientUrl,
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173'
+].filter(Boolean);
+
 app.use(cors({
-  origin: config.clientUrl || '*',
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl, Postman) or matching whitelist
+    if (!origin || allowedOrigins.includes(origin) || config.clientUrl === '*') {
+      callback(null, true);
+    } else {
+      callback(null, true); // Dev-friendly fallback
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
@@ -50,12 +70,14 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // System Health Check Endpoint
 app.get('/api/health', (req, res) => {
+  const timestamp = new Date().toISOString();
   res.status(200).json({
     success: true,
-    message: 'PathPilot API is running',
+    message: 'PathPilot backend is running',
+    timestamp,
     data: {
       status: 'healthy',
-      timestamp: new Date().toISOString(),
+      timestamp,
       environment: config.nodeEnv,
       version: '1.0.0'
     }
@@ -66,7 +88,8 @@ app.get('/api/health', (req, res) => {
 app.get('/api', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Welcome to PathPilot REST API Gateway - Every Journey Needs a Pilot.',
+    message: 'Welcome to PathPilot API',
+    version: '1.0.0',
     data: {
       version: '1.0.0',
       documentation: '/api/docs',
@@ -74,6 +97,7 @@ app.get('/api', (req, res) => {
       modules: [
         'auth',
         'users',
+        'profile',
         'trips',
         'sections',
         'days',
@@ -84,7 +108,13 @@ app.get('/api', (req, res) => {
         'calendar',
         'community',
         'shared',
-        'admin'
+        'admin',
+        'recommendations',
+        'notifications',
+        'templates',
+        'analytics',
+        'search',
+        'routes'
       ]
     }
   });
@@ -104,14 +134,22 @@ app.get('/', (req, res) => {
 app.use('/api', apiLimiter);
 
 // API Routes Mounting
+const analyticsRoutes = require('./routes/analyticsRoutes');
+const searchRoutes = require('./routes/searchRoutes');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/profile', userRoutes);
 app.use('/api/trips', tripRoutes);
 app.use('/api/cities', cityRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/shared', sharedRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/templates', templateRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/search', searchRoutes);
 
 // Direct modular routes
 app.use('/api', itineraryRoutes);

@@ -29,10 +29,22 @@ const deleteTrip = asyncHandler(async (req, res) => {
   return sendSuccess(res, result.message, {}, 200);
 });
 
+const getTripHealth = asyncHandler(async (req, res) => {
+  const tripHealthService = require('../services/tripHealthService');
+  const health = await tripHealthService.analyzeTripHealth(
+    req.params.tripId || req.params.id,
+    req.user.id,
+    req.query
+  );
+  return sendSuccess(res, 'Trip health analysis retrieved successfully', health, 200);
+});
+
 module.exports = {
   getTrips,
   getTripById,
   createTrip,
   updateTrip,
-  deleteTrip
+  deleteTrip,
+  getTripHealth
 };
+
