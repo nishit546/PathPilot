@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Trip, TripExpense, BudgetBreakdown } from '../types';
 import { tripsApi } from '../api/tripsApi';
 import { expensesApi } from '../api/expensesApi';
+import { useTravel } from '../context/TravelContext';
 import { PageLoader } from '../components/common/PageLoader';
 import { ErrorState } from '../components/common/ErrorState';
 import { Modal } from '../components/common/Modal';
@@ -36,6 +37,7 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
   onBack,
   onEditItinerary
 }) => {
+  const { trips } = useTravel();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [expenses, setExpenses] = useState<TripExpense[]>([]);
   const [budget, setBudget] = useState<BudgetBreakdown | null>(null);
@@ -61,33 +63,65 @@ export const TripDetailsPage: React.FC<TripDetailsPageProps> = ({
     setIsLoading(true);
     setError(null);
     try {
-      const [tripRes, expensesRes, budgetRes] = await Promise.all([
+      const [tripResult, expensesResult, budgetResult] = await Promise.allSettled([
         tripsApi.getTripById(tripId),
         tripsApi.getTripExpenses(tripId),
         tripsApi.getTripBudget(tripId)
       ]);
 
-      if (tripRes.success && tripRes.data?.trip) {
-        setTrip(tripRes.data.trip);
+      let loadedTrip: Trip | null = null;
+
+      if (tripResult.status === 'fulfilled' && tripResult.value.success) {
+        loadedTrip = tripResult.value.data?.trip || (tripResult.value.data as any);
+      }
+
+      // Fallback to local trip list if backend single-fetch had an error or delay
+      if (!loadedTrip) {
+        const found = trips.find(t => String(t.id) === String(tripId));
+        if (found) {
+          loadedTrip = found;
+        }
+      }
+
+      if (loadedTrip) {
+        setTrip(loadedTrip);
       } else {
         setError('Trip not found or access denied.');
       }
 
-      if (expensesRes.success) {
-        const expList = Array.isArray(expensesRes.data)
-          ? expensesRes.data
-          : (expensesRes.data?.expenses || []);
+      if (expensesResult.status === 'fulfilled' && expensesResult.value.success) {
+        const expList = Array.isArray(expensesResult.value.data)
+          ? expensesResult.value.data
+          : (expensesResult.value.data?.expenses || []);
         setExpenses(expList);
+      } else {
+        setExpenses([]);
       }
-      if (budgetRes.success && budgetRes.data) {
-        setBudget(budgetRes.data);
+
+      if (budgetResult.status === 'fulfilled' && budgetResult.value.success && budgetResult.value.data) {
+        setBudget(budgetResult.value.data);
+      } else if (loadedTrip) {
+        const totalBudget = Number(loadedTrip.totalBudget || 0);
+        setBudget({
+          totalBudget,
+          totalSpent: 0,
+          remainingBudget: totalBudget,
+          isOverBudget: false,
+          percentageSpent: 0,
+          categoryBreakdown: {}
+        } as any);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load trip details.');
+      const found = trips.find(t => String(t.id) === String(tripId));
+      if (found) {
+        setTrip(found);
+      } else {
+        setError(err.message || 'Failed to load trip details.');
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [tripId]);
+  }, [tripId, trips]);
 
   useEffect(() => {
     loadAllTripData();
