@@ -30,7 +30,6 @@
 - [Pre-Seeded Test Accounts](#-pre-seeded-test-accounts)
 - [Database Schema & Views](#-database-schema--views)
 - [API Reference](#-api-reference)
-- [Contributing & Community](#-contributing--community)
 - [License](#-license)
 
 ---
@@ -204,15 +203,6 @@ A sample of core REST endpoints exposed by the backend:
 | `GET` | `/api/admin/users` | Manage user directory & access status | Admin Only |
 
 *(For full endpoint definitions and payload schemas, see [docs/API_CONTRACT.md](docs/API_CONTRACT.md).)*
-
----
-
-## 🤝 Contributing & Community
-
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create.
-- Read our [Contributing Guidelines](CONTRIBUTING.md) to get started.
-- Review our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
-- Check out our [Security Policy](SECURITY.md) to report vulnerabilities responsibly.
 
 ---
 
