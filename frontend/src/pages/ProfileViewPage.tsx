@@ -332,14 +332,44 @@ export const ProfileViewPage: React.FC<ProfileViewPageProps> = ({ onViewTrip, on
                 />
               </div>
 
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label">Profile Photo URL</label>
-                <input
-                  type="url"
-                  className="form-input"
-                  value={profilePhoto}
-                  onChange={(e) => setProfilePhoto(e.target.value)}
-                />
+              {/* Cartoon Avatar Picker */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
+                  Choose Traveler Avatar
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.65rem' }}>
+                  {[
+                    { id: '1', name: 'Alex', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Felix&backgroundColor=b6e3f4' },
+                    { id: '2', name: 'Sam', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Aiden&backgroundColor=ffdfbf' },
+                    { id: '3', name: 'Maya', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Zoe&backgroundColor=c0aede' },
+                    { id: '4', name: 'Leo', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Milo&backgroundColor=d1d4f9' },
+                    { id: '5', name: 'Chloe', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Chloe&backgroundColor=ffd5dc' }
+                  ].map(av => {
+                    const isSel = profilePhoto === av.url;
+                    return (
+                      <button
+                        type="button"
+                        key={av.id}
+                        onClick={() => setProfilePhoto(av.url)}
+                        style={{
+                          background: isSel ? 'var(--primary-flare-subtle)' : '#ffffff',
+                          border: isSel ? '2.5px solid var(--primary-flare)' : '1.5px solid var(--border-silver)',
+                          borderRadius: '12px',
+                          padding: '0.35rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: isSel ? '0 4px 10px rgba(255, 72, 0, 0.2)' : 'none',
+                          transform: isSel ? 'scale(1.05)' : 'none',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <img src={av.url} alt={av.name} style={{ width: '44px', height: '44px', borderRadius: '8px' }} />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="form-group" style={{ marginBottom: '1.5rem' }}>

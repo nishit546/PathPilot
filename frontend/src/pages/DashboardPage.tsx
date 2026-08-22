@@ -31,3 +31,5 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onViewTrip, onEdit
     </div>
   );
 };
+
+export default DashboardPage;

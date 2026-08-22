@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trip } from '../types';
 import { calendarApi } from '../api/calendarApi';
 import { PageLoader } from '../components/common/PageLoader';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Plane } from 'lucide-react';
 
 interface CalendarViewPageProps {
   onViewTrip?: (trip: Trip) => void;
@@ -13,6 +13,12 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({ onViewTrip }
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Today reference for highlighting
+  const realToday = new Date();
+  const todayYear = realToday.getFullYear();
+  const todayMonth = realToday.getMonth() + 1; // 1-indexed (1-12)
+  const todayDay = realToday.getDate();
+
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1; // 1-indexed for backend
 
@@ -22,13 +28,27 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({ onViewTrip }
       .getCalendar({ month, year })
       .then(res => {
         if (res.success && res.data) {
-          const list = Array.isArray(res.data)
+          const rawList = Array.isArray(res.data)
             ? res.data
             : (res.data.trips || res.data.events || []);
-          setTrips(list);
+
+          // Normalize dates and IDs
+          const normalized = rawList.map((t: any) => ({
+            ...t,
+            id: t.id ?? t.tripId ?? 0,
+            title: t.name || t.title || 'Trip Itinerary',
+            startDate: typeof t.startDate === 'string' ? t.startDate.split('T')[0] : '',
+            endDate: typeof t.endDate === 'string' ? t.endDate.split('T')[0] : ''
+          }));
+          setTrips(normalized);
+        } else {
+          setTrips([]);
         }
       })
-      .catch(err => console.warn('Calendar fetch:', err))
+      .catch(err => {
+        console.warn('Calendar fetch:', err);
+        setTrips([]);
+      })
       .finally(() => setIsLoading(false));
   }, [month, year]);
 
@@ -38,11 +58,15 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({ onViewTrip }
   ];
 
   const handlePrevMonth = () => {
-    setCurrentDate(new Date(year, month - 2, 1));
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
 
   const handleNextMonth = () => {
-    setCurrentDate(new Date(year, month, 1));
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
   };
 
   // Calendar days grid calculation
@@ -71,14 +95,14 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({ onViewTrip }
           </p>
         </div>
 
-        {/* Month Picker Controls */}
+        {/* Month Picker Controls + Today Button */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '1rem',
+            gap: '0.65rem',
             background: '#ffffff',
-            padding: '0.5rem 1rem',
+            padding: '0.4rem 0.85rem',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-silver)',
             boxShadow: 'var(--shadow-sm)'
@@ -86,18 +110,27 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({ onViewTrip }
         >
           <button
             onClick={handlePrevMonth}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-primary)' }}
+            aria-label="Previous Month"
           >
             <ChevronLeft size={20} />
           </button>
-          <span style={{ fontSize: '1.1rem', fontWeight: 800, minWidth: '150px', textAlign: 'center' }}>
+          <span style={{ fontSize: '1.05rem', fontWeight: 800, minWidth: '145px', textAlign: 'center', color: 'var(--text-primary)' }}>
             {monthNames[month - 1]} {year}
           </span>
           <button
             onClick={handleNextMonth}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-primary)' }}
+            aria-label="Next Month"
           >
             <ChevronRight size={20} />
+          </button>
+          <button
+            onClick={handleToday}
+            className="btn-secondary"
+            style={{ padding: '0.25rem 0.75rem', fontSize: '0.78rem', marginLeft: '0.25rem' }}
+          >
+            Today
           </button>
         </div>
       </div>
@@ -137,7 +170,7 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({ onViewTrip }
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(7, 1fr)',
-              gridAutoRows: 'minmax(110px, auto)'
+              gridAutoRows: 'minmax(115px, auto)'
             }}
           >
             {/* Blank leading days */}
@@ -150,23 +183,72 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({ onViewTrip }
               const dayNum = i + 1;
               const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
 
+              // Exact Today match
+              const isToday = year === todayYear && month === todayMonth && dayNum === todayDay;
+
               // Find trips covering this date
-              const dayTrips = trips.filter(t => t.startDate <= dateStr && t.endDate >= dateStr);
+              const dayTrips = trips.filter(t => {
+                if (!t.startDate || !t.endDate) return false;
+                return t.startDate <= dateStr && t.endDate >= dateStr;
+              });
 
               return (
                 <div
                   key={dayNum}
                   style={{
-                    borderRight: '1px solid #f0f0f0',
-                    borderBottom: '1px solid #f0f0f0',
-                    padding: '0.5rem',
+                    borderRight: isToday ? '2px solid var(--primary-flare)' : '1px solid #f0f0f0',
+                    borderBottom: isToday ? '2px solid var(--primary-flare)' : '1px solid #f0f0f0',
+                    borderLeft: isToday ? '2px solid var(--primary-flare)' : 'none',
+                    borderTop: isToday ? '2px solid var(--primary-flare)' : 'none',
+                    padding: '0.55rem',
                     display: 'flex',
-                    flexDirection: 'column'
+                    flexDirection: 'column',
+                    background: isToday
+                      ? 'rgba(255, 72, 0, 0.05)'
+                      : dayTrips.length > 0
+                      ? 'rgba(255, 72, 0, 0.02)'
+                      : '#ffffff',
+                    position: 'relative',
+                    boxShadow: isToday ? 'inset 0 0 0 1px var(--primary-flare)' : 'none'
                   }}
                 >
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                    {dayNum}
-                  </span>
+                  {/* Day Header Row with Today highlight */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <span
+                      style={{
+                        fontSize: '0.85rem',
+                        fontWeight: isToday ? 900 : 700,
+                        color: isToday ? '#ffffff' : 'var(--text-primary)',
+                        background: isToday ? 'var(--primary-flare)' : 'transparent',
+                        width: isToday ? '24px' : 'auto',
+                        height: isToday ? '24px' : 'auto',
+                        borderRadius: isToday ? '50%' : '0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: isToday ? '0 2px 6px rgba(255, 72, 0, 0.4)' : 'none'
+                      }}
+                    >
+                      {dayNum}
+                    </span>
+
+                    {isToday && (
+                      <span
+                        style={{
+                          padding: '0.1rem 0.45rem',
+                          background: 'var(--primary-flare)',
+                          color: '#ffffff',
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: '0.65rem',
+                          fontWeight: 800,
+                          letterSpacing: '0.04em',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        Today
+                      </span>
+                    )}
+                  </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     {dayTrips.map(trip => {
@@ -187,11 +269,15 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({ onViewTrip }
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
-                            textOverflow: 'ellipsis'
+                            textOverflow: 'ellipsis',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
                           }}
                           title={title}
                         >
-                          ✈️ {title}
+                          <Plane size={11} />
+                          <span>{title}</span>
                         </div>
                       );
                     })}
@@ -205,3 +291,5 @@ export const CalendarViewPage: React.FC<CalendarViewPageProps> = ({ onViewTrip }
     </div>
   );
 };
+
+export default CalendarViewPage;

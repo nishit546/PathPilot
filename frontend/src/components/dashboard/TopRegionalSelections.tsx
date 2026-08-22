@@ -96,18 +96,17 @@ export const TopRegionalSelections: React.FC = () => {
                 <span
                   style={{
                     padding: '0.2rem 0.55rem',
-                    background: 'rgba(255, 255, 255, 0.25)',
-                    backdropFilter: 'blur(8px)',
+                    background: 'rgba(0, 0, 0, 0.45)',
                     borderRadius: 'var(--radius-full)',
                     color: '#ffffff',
                     fontSize: '0.72rem',
-                    fontWeight: 700
+                    fontWeight: 600
                   }}
                 >
-                  {reg.costIndex} Cost
+                  {reg.cityCount} Cities
                 </span>
 
-                {isSelected ? (
+                {isSelected && (
                   <span
                     style={{
                       width: '24px',
@@ -117,23 +116,11 @@ export const TopRegionalSelections: React.FC = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#ffffff'
+                      color: '#ffffff',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
                     }}
                   >
                     <Check size={14} />
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      padding: '0.2rem 0.55rem',
-                      background: 'rgba(0, 0, 0, 0.45)',
-                      borderRadius: 'var(--radius-full)',
-                      color: 'var(--border-silver)',
-                      fontSize: '0.72rem',
-                      fontWeight: 600
-                    }}
-                  >
-                    {reg.cityCount} Cities
                   </span>
                 )}
               </div>
@@ -162,3 +149,5 @@ export const TopRegionalSelections: React.FC = () => {
     </section>
   );
 };
+
+export default TopRegionalSelections;
