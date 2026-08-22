@@ -1,143 +1,168 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, UserRole } from '../types';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { User } from '../types';
+import { authApi, LoginPayload, RegisterPayload } from '../api/authApi';
+import { getStoredToken, setStoredToken } from '../api/client';
 
 interface AuthContextType {
   currentUser: User | null;
+  token: string | null;
   isAuthenticated: boolean;
-  login: (email: string, password?: string, role?: UserRole) => Promise<boolean>;
-  quickLogin: (type: 'traveler' | 'admin') => void;
-  register: (userData: Partial<User>) => Promise<boolean>;
-  logout: () => void;
-  updateProfile: (updates: Partial<User>) => void;
+  isLoading: boolean;
+  login: (credentials: LoginPayload) => Promise<boolean>;
+  quickLogin: (type: 'traveler' | 'admin') => Promise<boolean>;
+  register: (data: RegisterPayload) => Promise<boolean>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
-
-const STORAGE_KEY = 'pathpilot_current_user';
-
-export const CARTOON_AVATARS = [
-  'https://api.dicebear.com/7.x/adventurer/svg?seed=Felix&backgroundColor=ffd5dc,ffdfbf',
-  'https://api.dicebear.com/7.x/adventurer/svg?seed=Aria&backgroundColor=c0aede,d1d4f9',
-  'https://api.dicebear.com/7.x/adventurer/svg?seed=Leo&backgroundColor=b6e3f4,c0aede',
-  'https://api.dicebear.com/7.x/adventurer/svg?seed=Zoe&backgroundColor=ffdfbf,ffd5dc',
-  'https://api.dicebear.com/7.x/adventurer/svg?seed=Jack&backgroundColor=d1d4f9,b6e3f4'
-];
-
-// Pre-seeded demo user with stylish cartoon avatars
-export const DEMO_USERS: Record<'traveler' | 'admin', User> = {
-  traveler: {
-    id: 'user-traveler-1',
-    name: 'Tapan (Traveler)',
-    email: 'traveler@pathpilot.io',
-    avatar: CARTOON_AVATARS[0],
-    role: 'traveler',
-    phone: '+91 98765 43210',
-    city: 'Mumbai',
-    country: 'India',
-    currency: 'INR',
-    bio: 'Passionate multi-city traveler and explorer! Always searching for scenic views and cultural heritage.',
-    travelInterests: ['Sightseeing', 'Adventure', 'Food', 'Culture']
-  },
-  admin: {
-    id: 'user-admin-99',
-    name: 'PathPilot Admin',
-    email: 'admin@pathpilot.io',
-    avatar: CARTOON_AVATARS[4],
-    role: 'admin',
-    phone: '+91 99999 88888',
-    city: 'Bangalore',
-    country: 'India',
-    currency: 'INR',
-    bio: 'System Administrator managing platform analytics, trending destinations, and verified travel itineraries.',
-    travelInterests: ['Nature', 'Nightlife', 'Sightseeing']
-  }
-};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
+  const [token, setToken] = useState<string | null>(() => getStoredToken());
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const normalizeUser = (rawUser: any): User => {
+    const fullName = rawUser.firstName && rawUser.lastName 
+      ? `${rawUser.firstName} ${rawUser.lastName}`.trim()
+      : rawUser.name || rawUser.firstName || rawUser.email.split('@')[0];
+
+    const defaultAvatar = rawUser.profilePhoto || 
+      `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(fullName)}&backgroundColor=ffd5dc,ffdfbf,c0aede`;
+
+    return {
+      ...rawUser,
+      name: fullName,
+      avatar: defaultAvatar,
+      currency: rawUser.currency || 'INR'
+    };
+  };
+
+  const verifySession = useCallback(async () => {
+    const stored = getStoredToken();
+    if (!stored) {
+      setCurrentUser(null);
+      setIsLoading(false);
+      return;
     }
-  });
+
+    try {
+      const response = await authApi.getMe();
+      if (response.success && response.data?.user) {
+        setCurrentUser(normalizeUser(response.data.user));
+      } else {
+        setStoredToken(null);
+        setToken(null);
+        setCurrentUser(null);
+      }
+    } catch (err) {
+      console.warn('Session verification failed:', err);
+      setStoredToken(null);
+      setToken(null);
+      setCurrentUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentUser));
+    verifySession();
+
+    const handleUnauthorized = () => {
+      setStoredToken(null);
+      setToken(null);
+      setCurrentUser(null);
+    };
+
+    window.addEventListener('pathpilot:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('pathpilot:unauthorized', handleUnauthorized);
+  }, [verifySession]);
+
+  const login = async (credentials: LoginPayload): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const res = await authApi.login(credentials);
+      if (res.success && res.data) {
+        const receivedToken = res.data.token;
+        const loggedUser = normalizeUser(res.data.user);
+        setStoredToken(receivedToken);
+        setToken(receivedToken);
+        setCurrentUser(loggedUser);
+        return true;
+      }
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const quickLogin = async (type: 'traveler' | 'admin'): Promise<boolean> => {
+    if (type === 'admin') {
+      return login({
+        email: 'admin@pathpilot.com',
+        password: 'AdminPassword123!'
+      });
     } else {
-      localStorage.removeItem(STORAGE_KEY);
+      return login({
+        email: 'traveler@pathpilot.com',
+        password: 'Password123!'
+      });
     }
-  }, [currentUser]);
+  };
 
-  const login = async (email: string, _password?: string, role: UserRole = 'traveler'): Promise<boolean> => {
-    if (email.toLowerCase().includes('traveler') || email.toLowerCase().includes('tapan')) {
-      setCurrentUser(DEMO_USERS.traveler);
-      return true;
+  const register = async (data: RegisterPayload): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const res = await authApi.register(data);
+      if (res.success && res.data) {
+        const receivedToken = res.data.token;
+        const loggedUser = normalizeUser(res.data.user);
+        setStoredToken(receivedToken);
+        setToken(receivedToken);
+        setCurrentUser(loggedUser);
+        return true;
+      }
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-    if (email.toLowerCase().includes('admin')) {
-      setCurrentUser(DEMO_USERS.admin);
-      return true;
+  };
+
+  const logout = async (): Promise<void> => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Ignore network errors on logout
+    } finally {
+      setStoredToken(null);
+      setToken(null);
+      setCurrentUser(null);
     }
-
-    const newUser: User = {
-      id: `user-${Date.now()}`,
-      name: email.split('@')[0] || 'Traveler',
-      email,
-      avatar: CARTOON_AVATARS[0],
-      role,
-      currency: 'INR',
-      country: 'India',
-      city: 'Delhi',
-      travelInterests: ['Sightseeing', 'Food']
-    };
-    setCurrentUser(newUser);
-    return true;
   };
 
-  const quickLogin = (type: 'traveler' | 'admin') => {
-    setCurrentUser(DEMO_USERS[type]);
-  };
-
-  const register = async (userData: Partial<User>): Promise<boolean> => {
-    const newUser: User = {
-      id: `user-${Date.now()}`,
-      name: userData.name || 'Explorer',
-      email: userData.email || 'traveler@pathpilot.io',
-      avatar: userData.avatar || CARTOON_AVATARS[0],
-      role: userData.role || 'traveler',
-      phone: userData.phone || '',
-      city: userData.city || 'Mumbai',
-      country: userData.country || 'India',
-      currency: userData.currency || 'INR',
-      bio: userData.bio || 'Ready for multi-city discoveries!',
-      travelInterests: userData.travelInterests || ['Sightseeing', 'Culture'],
-      createdAt: new Date().toISOString()
-    };
-    setCurrentUser(newUser);
-    return true;
-  };
-
-  const logout = () => {
-    setCurrentUser(null);
-  };
-
-  const updateProfile = (updates: Partial<User>) => {
-    if (!currentUser) return;
-    setCurrentUser({ ...currentUser, ...updates });
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const response = await authApi.getMe();
+      if (response.success && response.data?.user) {
+        setCurrentUser(normalizeUser(response.data.user));
+      }
+    } catch (err) {
+      console.error('Failed to refresh user:', err);
+    }
   };
 
   return (
     <AuthContext.Provider
       value={{
         currentUser,
-        isAuthenticated: !!currentUser,
+        token,
+        isAuthenticated: !!currentUser && !!token,
+        isLoading,
         login,
         quickLogin,
         register,
         logout,
-        updateProfile
+        refreshUser
       }}
     >
       {children}
