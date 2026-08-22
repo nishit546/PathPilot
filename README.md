@@ -1,199 +1,225 @@
-# 🧭 PathPilot (GlobalTrotter)
+<p align="center">
+  <img src="frontend/public/logo.svg" alt="PathPilot Logo" width="90" height="90" />
+</p>
 
-> **Every Journey Needs a Pilot.**  
-> A modern, personalized, intelligent, and collaborative travel planning platform. Architect end-to-end multi-city itineraries, organize day-wise schedules, track multi-category budgets, explore destinations, share travel logs, and manage the platform via a comprehensive Admin Dashboard.
+<h1 align="center">PathPilot 🧭</h1>
+
+<p align="center">
+  <strong>Every Journey Needs a Pilot.</strong><br />
+  An intelligent, modern, multi-city travel planning platform built with React 19, TypeScript, Node.js, Express, and PostgreSQL / Supabase.
+</p>
+
+<p align="center">
+  <a href="https://github.com/nishit546/PathPilot/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License: MIT" /></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-18%2B-green.svg?style=for-the-badge&logo=node.js" alt="Node.js" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19.0-61dafb.svg?style=for-the-badge&logo=react" alt="React 19" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0-3178c6.svg?style=for-the-badge&logo=typescript" alt="TypeScript" /></a>
+  <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-14%2B-336791.svg?style=for-the-badge&logo=postgresql" alt="PostgreSQL" /></a>
+  <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Supabase-Auth%20%26%20DB-3ecf8e.svg?style=for-the-badge&logo=supabase" alt="Supabase" /></a>
+</p>
 
 ---
 
 ## 📑 Table of Contents
 
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
+- [Overview](#-overview)
+- [Key Features](#-key-features)
+- [Architecture & Tech Stack](#-architecture--tech-stack)
 - [Repository Structure](#-repository-structure)
-- [Quick Start & Setup on Any Device](#-quick-start--setup-on-any-device)
-- [Database & Security Architecture](#-database--security-architecture)
-- [Admin Dashboard Views](#-admin-dashboard-globaltrotter-views)
-- [Seed Accounts for Testing](#-seed-accounts-for-testing)
+- [Quick Start & Local Setup](#-quick-start--local-setup)
+- [Pre-Seeded Test Accounts](#-pre-seeded-test-accounts)
+- [Database Schema & Views](#-database-schema--views)
+- [API Reference](#-api-reference)
+- [Contributing & Community](#-contributing--community)
 - [License](#-license)
 
 ---
 
-## 🌟 Features
+## 🌟 Overview
 
-### 1. 🔐 Authentication & Profile Management
-- Secure user registration and authentication via **Supabase Auth**.
-- Automated profile creation in `public.profiles` via database triggers.
-- Role-based authorization (`user`, `admin`, `moderator`).
+**PathPilot** eliminates the chaos of modern travel planning. Rather than juggling dozens of disparate browser tabs, spreadsheets, and messaging apps, PathPilot brings your complete travel lifecycle into one unified, collaborative dashboard:
 
-### 2. 🗺️ Multi-City Trip Planning
-- Create multi-city trips with customizable budgets, descriptions, and cover images.
-- **Dynamic Trip Status**: Automatically calculates `upcoming`, `ongoing`, or `completed` based on real-time dates.
-- Filter, search, and sort trips by status, date, or name.
-
-### 3. 🗓️ Itinerary Sections & Automated Day Schedules
-- Divide trips into sequential sections/stops (e.g., Tokyo $\to$ Kyoto or Jaipur $\to$ Varanasi).
-- Daily calendar breakdown per section with scheduled activities and time slots.
-
-### 4. 💰 Smart Budgeting & Expense Tracking
-- Pre-computed database views for real-time budget rollups (`v_trip_budget_summary`, `v_section_budget_summary`, `v_day_budget_summary`).
-- Category breakdowns: `accommodation`, `transport`, `activity`, `food`, `shopping`, `other`.
-
-### 5. 🔍 Destination & Activity Discovery
-- Searchable cities database with country, state/region, coordinates, and cover images.
-- Searchable activities catalog categorized by culture, adventure, food, sightseeing, shopping, and entertainment.
-
-### 6. 🔗 Public Sharing & Community Feed
-- Generate unique share tokens for read-only, public trip sharing (`/share/:token`).
-- Community travel experiences feed with photos, activity links, and likes.
-
-### 7. 🛡️ Admin Dashboard & Analytics (GlobalTrotter)
-- **Manage Users**: View all traveler profiles, trip histories, and active/banned status.
-- **Popular Cities**: Real-time rankings of top-visited destinations and average stay duration.
-- **Popular Activities**: Real-time rankings of most scheduled activities and revenue.
-- **User Trends & Analytics**: Pre-computed data for Pie Charts, Line Graphs, and Bar Charts.
+1. **Multi-Stop Itinerary Sequencing**: Structure multi-city journeys, arrival/departure schedules, and auto-generated daily plans.
+2. **Dynamic Day-Wise Scheduling**: Assign curated sights, heritage tours, culinary walks, and custom activities with time slots and budget allocations.
+3. **Smart Budget & Expense Engine**: Track real-time category spending against allocated budgets with pre-computed database rollups.
+4. **Group Expense Splitting & Settlements**: Split bills with travel companions (equally, custom amounts, or percentages) and calculate optimal debt settlements.
+5. **Smart Packing & Document Readiness**: Interactive checklists with weather-aware suggestions and document expiration alerts.
+6. **Destination & Activity Catalog**: Searchable global city index with high-resolution imagery and verified activities.
+7. **Admin Platform Intelligence**: Full governance dashboard with user management, destination rankings, and real-time interactive charts.
 
 ---
 
-## 🛠️ Tech Stack
+## 🚀 Key Features
 
-| Layer | Technology | Description |
+```mermaid
+graph TD
+    A[Traveler / Admin] --> B[PathPilot React 19 Frontend]
+    B --> C[Node.js / Express REST API]
+    C --> D[PostgreSQL / Supabase Database]
+    D --> E[Triggers & Automated Rollup Views]
+    C --> F[Group Split Engine & Smart Route Optimizer]
+```
+
+### 1. 🗺️ Multi-City Itinerary Architect
+- Create multi-city trips with custom departure dates, durations, and covers.
+- Real-time status indicators (`Upcoming`, `Ongoing`, `Completed`).
+- Interactive calendar view with date pill navigation and smooth transitions.
+
+### 2. 💰 Financial & Budget Analytics
+- Pre-computed database views (`v_trip_budget_summary`, `v_section_budget_summary`, `v_day_budget_summary`).
+- Category breakdowns: `Accommodation`, `Transport`, `Activity`, `Food`, `Shopping`, and `Other`.
+- Real-time budget progress bars with visual warnings when exceeding allocated stop budgets.
+
+### 3. 👥 Group Expenses & Debt Settlement
+- Add shared expenses with flexible split modes: `EQUAL`, `EXACT`, or `PERCENTAGE`.
+- Automatic calculation of user net balances (who owes whom).
+- Graph-optimized minimum transaction debt settlements.
+
+### 4. 🧳 Smart Packing & Pre-Trip Readiness
+- Checklist categorized by essentials, electronics, clothing, and toiletries.
+- Automated packing suggestions based on destination climate and season.
+- Travel document tracker with passport/visa validation and trip readiness score (0–100%).
+
+### 5. 🛡️ GlobalTrotter Admin Governance Center
+- User directory with status toggles (Active vs. Blocked) and role management.
+- Real-time analytics: Pie chart (Trip status distribution), Bar chart (Top destination leaderboard), and Line metrics.
+
+---
+
+## 🛠️ Architecture & Tech Stack
+
+| Layer | Technologies | Purpose |
 |---|---|---|
-| **Database** | [PostgreSQL 17.6 (Supabase)](https://supabase.com/) | Scalable relational database with RLS policies and aggregation views |
-| **Authentication** | [Supabase Auth](https://supabase.com/auth) | Managed authentication with JWT and auto-provisioned profiles |
-| **Backend** | [Node.js](https://nodejs.org/) + [Express.js](https://expressjs.com/) | RESTful API server |
-| **Frontend** | [React](https://react.dev/) | Dynamic web user interface & Admin Dashboard |
+| **Frontend** | React 19, TypeScript, Vite, Vanilla CSS Design System | High-performance, reactive UI with rich aesthetics, modals, and responsive layout |
+| **Icons & Assets** | Lucide React, SVG vector icons | Crisp, retina-ready travel UI icons and custom branding |
+| **Backend API** | Node.js, Express.js (v4.19+) | Robust REST API, JWT authentication, role authorization, and validation |
+| **Database** | PostgreSQL 14+, Supabase | Relational data integrity, foreign key cascades, views, and auto-updated timestamps |
+| **Data Access** | Repository Pattern & Service Layer | Clean architectural separation of database queries and business domain logic |
 
 ---
 
-## 📂 Repository Structure
+## 📁 Repository Structure
 
 ```
 PathPilot/
-├── database/                   # Supabase Database Layer
-│   ├── migrations/             # Sequential migration files (001 - 006)
-│   │   ├── 001_initial_schema.sql
-│   │   ├── 002_views_and_functions.sql
-│   │   ├── 003_indexes.sql
-│   │   ├── 004_row_level_security.sql
-│   │   ├── 005_admin_dashboard.sql
-│   │   └── 006_admin_dashboard_wireframe_views.sql
-│   ├── seed/                   # Curated Indian & Global Seed Data
-│   │   ├── 01_cities_activities.sql
-│   │   └── 02_demo_trips.sql
-│   ├── scripts/                # Database tooling
-│   │   ├── migrate.js          # Migration runner (tracks _schema_migrations)
-│   │   ├── seed.js             # Seeding runner
-│   │   ├── validate.js         # Automated end-to-end test suite
-│   │   └── verify_deployment.js# Deployment validation suite
-│   ├── .env.example
-│   ├── package.json
-│   └── README.md
-├── .gitignore
-└── README.md
+├── frontend/                     # React + Vite + TypeScript Client
+│   ├── src/
+│   │   ├── api/                  # Typed API clients (tripsApi, citiesApi, adminApi...)
+│   │   ├── components/           # UI components (Navbar, Modals, Feed, Logo...)
+│   │   ├── context/              # Context providers (AuthContext, TravelContext)
+│   │   ├── pages/                # Route views (Dashboard, Trips, Itinerary, Explore, Admin...)
+│   │   └── types/                # TypeScript interface definitions
+│   └── README.md                 # Dedicated Frontend Documentation
+├── backend/                      # Node.js + Express REST API Server
+│   ├── src/
+│   │   ├── controllers/          # HTTP request handlers
+│   │   ├── services/             # Core business logic & split engines
+│   │   ├── repositories/         # PostgreSQL database queries
+│   │   ├── routes/               # API route definitions
+│   │   ├── middleware/           # Auth, role authorization, and validation
+│   │   └── config/               # Database pool & environment configs
+│   └── README.md                 # Dedicated Backend Documentation
+├── database/                     # Database schemas, migrations & seeds
+├── docs/                         # Extended API contracts & integration guides
+├── CODE_OF_CONDUCT.md            # Contributor Covenant Code of Conduct
+├── CONTRIBUTING.md                # Open source contribution guidelines
+├── LICENSE                       # MIT License
+└── SECURITY.md                   # Security vulnerability policy
 ```
 
 ---
 
-## 🚀 Quick Start & Setup on Any Device
+## ⚡ Quick Start & Local Setup
 
 ### Prerequisites
-* **Node.js** ($\ge$ 18.x) & **npm**
-* **Git**
+- **Node.js**: v18.0.0 or higher
+- **npm**: v9.0.0 or higher
+- **PostgreSQL Database** or cloud [Supabase](https://supabase.com) project
 
-### Step 1: Clone the Repository
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/nishit546/PathPilot.git
 cd PathPilot
 ```
 
-### Step 2: Configure Database Environment
+### 2. Configure & Start the Backend
 ```bash
-cd database
-```
-Create your `.env` file:
-* **Windows (PowerShell)**:
-  ```powershell
-  Copy-Item .env.example .env
-  ```
-* **macOS / Linux**:
-  ```bash
-  cp .env.example .env
-  ```
-
-Set your Supabase database connection in `.env`:
-```env
-DATABASE_URL=postgresql://postgres:PathPilot@1234@db.emqevuuumwkbpvdbtavf.supabase.co:5432/postgres
-PGSSLMODE=require
-```
-
-### Step 3: Install Dependencies
-```bash
+cd backend
 npm install
+cp .env.example .env
+# Open .env and configure your DATABASE_URL and SUPABASE_JWT_SECRET
+npm start
 ```
+*The backend REST API will run on `http://localhost:5000`.*
 
-### Step 4: Run Database Migrations & Seeds
-Run the complete automated setup:
+### 3. Configure & Start the Frontend
 ```bash
-npm run db:setup
+cd ../frontend
+npm install
+npm run dev
 ```
-
-Or execute individual steps:
-```bash
-npm run migrate    # Applies migrations (001 -> 006) in exact sequence
-npm run seed       # Injects 26 cities, 70 activities, 10 Indian traveler profiles, and 9 trips
-npm run validate   # Runs the 8-point automated validation test suite
-```
+*The frontend Vite dev server will run on `http://localhost:5173`.*
 
 ---
 
-## 🛡️ Database & Security Architecture
+## 🔑 Pre-Seeded Test Accounts
 
-* **33 Granular Row Level Security (RLS) Policies**: All traveler data is isolated to the owning user (`auth.uid() = user_id`) while allowing public access to destination catalog and shared trips.
-* **Auto-Profile Trigger**: When a user registers via `supabase.auth.signUp()`, the PostgreSQL `handle_new_user()` trigger automatically provisions their profile in `public.profiles`.
-* **Zero Custom Password Management**: All authentication is handled by Supabase Auth; no plain or hashed passwords exist in the application database.
-* **Dynamic Budget Rollup Views**:
-  * `v_trip_budget_summary`: Total budget, actual spending, and balance per trip.
-  * `v_section_budget_summary`: Leg-by-leg budget vs. expenses.
-  * `v_day_budget_summary`: Daily schedule expense breakdowns.
+You can immediately test all features using the following pre-configured demonstration accounts on the login screen:
 
----
-
-## 📊 Admin Dashboard (GlobalTrotter) Views
-
-The database provides pre-computed analytics and management views matching the Admin Dashboard wireframe:
-
-1. **Manage Users Tab**:
-   * `v_admin_manage_users`: User directory, roles (`user`, `admin`, `moderator`), active status, total trips, and spending.
-   * `v_admin_user_trips_detail`: Deep-dive into all trips planned by any specific traveler.
-2. **Popular Cities Tab**:
-   * `v_admin_popular_cities`: Rankings by total traveler visits, stay duration, and budget.
-3. **Popular Activities Tab**:
-   * `v_admin_popular_activities`: Rankings by schedule count and category revenue.
-4. **User Trends & Analytics Tab**:
-   * `v_admin_analytics_trip_status`: Status breakdown (Pie Chart).
-   * `v_admin_analytics_category_breakdown`: Category share (Pie Chart).
-   * `v_admin_analytics_monthly_trends`: Monthly traveler & trip growth (Line Graph).
-   * `v_admin_analytics_spending_by_country`: Country-level volume (Bar Chart).
+| Role | Email | Password | Access Privileges |
+|---|---|---|---|
+| **Administrator** | `admin@pathpilot.dev` | `Admin@12345` | Global Admin Analytics, User Management & System Control |
+| **Traveler** | `nishit@pathpilot.dev` | `Traveler@123` | Personal Trips, Group Expenses, Itineraries & Packing Lists |
+| **Traveler** | `sam@traveler.com` | `Traveler@123` | Multi-City Tours, Community Reviews & Collaborative Trips |
 
 ---
 
-## 👥 Seed Accounts for Testing
+## 🗄️ Database Schema & Views
 
-| Name | Role | Email | Password | Home City |
-|---|---|---|---|---|
-| **Harshit Kumar** | `admin` | `harshit@pathpilot.dev` | `PathPilotPass123!` | Bengaluru, India |
-| **Aarav Sharma** | `user` | `aarav.sharma@pathpilot.dev` | `PathPilotPass123!` | New Delhi, India |
-| **Ananya Iyer** | `user` | `ananya.iyer@pathpilot.dev` | `PathPilotPass123!` | Chennai, India |
-| **Rohan Verma** | `user` | `rohan.verma@pathpilot.dev` | `PathPilotPass123!` | Mumbai, India |
-| **Priyadarshini Sen** | `user` | `priya.sen@pathpilot.dev` | `PathPilotPass123!` | Kolkata, India |
-| **Vikram Malhotra** | `user` | `vikram.malhotra@pathpilot.dev` | `PathPilotPass123!` | Hyderabad, India |
-| **Neha Kapoor** | `user` | `neha.kapoor@pathpilot.dev` | `PathPilotPass123!` | Chandigarh, India |
-| **Aditya Nair** | `user` | `aditya.nair@pathpilot.dev` | `PathPilotPass123!` | Kochi, India |
-| **Tanvi Deshmukh** | `user` | `tanvi.deshmukh@pathpilot.dev` | `PathPilotPass123!` | Pune, India |
-| **Kabir Mehta** | `user` | `kabir.mehta@pathpilot.dev` | `PathPilotPass123!` | Ahmedabad, India |
+PathPilot leverages advanced PostgreSQL views for instant, non-blocking calculations:
+
+- `v_trip_budget_summary`: Aggregates total trip budget, manual expenses, activities cost, and remaining funds.
+- `v_section_budget_summary`: Calculates allocated vs. actual spend per destination stop.
+- `v_day_budget_summary`: Groups daily activity expenditures and scheduled item costs.
+- `public.trips`: Core trip registry with status triggers and privacy controls (`PUBLIC` vs. `PRIVATE`).
+- `public.trip_collaborators`: Multi-user access permissions (`OWNER`, `EDITOR`, `VIEWER`).
 
 ---
 
-## 📜 License
+## 📡 API Reference
 
-This project is developed for the Hackathon under the MIT License.
+A sample of core REST endpoints exposed by the backend:
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `POST` | `/api/auth/login` | Authenticate user & issue JWT | No |
+| `GET` | `/api/trips` | Retrieve user's trips with pagination & filters | Yes |
+| `POST` | `/api/trips` | Create a new multi-city journey | Yes |
+| `GET` | `/api/trips/:id` | Fetch comprehensive trip details & stops | Yes |
+| `POST` | `/api/trips/:id/sections` | Add destination city stop & auto-generate days | Yes |
+| `POST` | `/api/trips/:id/expenses` | Log a categorized expense | Yes |
+| `GET` | `/api/trips/:id/budget` | Fetch real-time budget rollup | Yes |
+| `GET` | `/api/cities` | Searchable global destinations catalog | No |
+| `GET` | `/api/admin/analytics` | Fetch platform intelligence & KPI charts | Admin Only |
+| `GET` | `/api/admin/users` | Manage user directory & access status | Admin Only |
+
+*(For full endpoint definitions and payload schemas, see [docs/API_CONTRACT.md](docs/API_CONTRACT.md).)*
+
+---
+
+## 🤝 Contributing & Community
+
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create.
+- Read our [Contributing Guidelines](CONTRIBUTING.md) to get started.
+- Review our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
+- Check out our [Security Policy](SECURITY.md) to report vulnerabilities responsibly.
+
+---
+
+## 📄 License
+
+Distributed under the **MIT License**. See [LICENSE](LICENSE) for more information.
+
+<p align="center">
+  Made with ❤️ by the <strong>PathPilot</strong> Team • Every Journey Needs a Pilot ✈️
+</p>
