@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TravelProvider, useTravel } from './context/TravelContext';
 import { AuthPage } from './pages/AuthPage';
@@ -23,12 +23,29 @@ const MainAppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [selectedTripId, setSelectedTripId] = useState<number | string | null>(null);
 
+  // Automatically direct Admins to the Admin page
+  useEffect(() => {
+    if (currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'admin')) {
+      setActiveTab('admin');
+    }
+  }, [currentUser?.role]);
+
   if (isLoading) {
     return <PageLoader message="Verifying PathPilot session..." />;
   }
 
   if (!isAuthenticated || !currentUser) {
-    return <AuthPage onAuthSuccess={() => setActiveTab('dashboard')} />;
+    return (
+      <AuthPage
+        onAuthSuccess={() => {
+          if (currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'admin')) {
+            setActiveTab('admin');
+          } else {
+            setActiveTab('dashboard');
+          }
+        }}
+      />
+    );
   }
 
   const handleViewTrip = (trip: any) => {

@@ -401,7 +401,7 @@ export const CreateTripModal: React.FC<CreateTripModalProps> = ({
                 Overall Journey Budget ({currentUser?.currency || 'INR'} ₹)
               </label>
               <div className="input-with-icon">
-                <DollarSign className="input-icon-left" size={16} />
+                <span className="input-icon-left" style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>₹</span>
                 <input
                   type="number"
                   min={1000}
