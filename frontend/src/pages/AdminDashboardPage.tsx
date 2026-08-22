@@ -398,13 +398,13 @@ export const AdminDashboardPage: React.FC = () => {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div className="input-with-icon" style={{ width: '220px' }}>
+          <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="input-with-icon" style={{ width: '220px', minWidth: '180px' }}>
               <Search className="input-icon-left" size={16} />
               <input
                 type="text"
                 className="form-input"
-                style={{ padding: '0.5rem 0.85rem 0.5rem 2.2rem', fontSize: '0.85rem' }}
+                style={{ width: '100%', padding: '0.5rem 0.85rem 0.5rem 2.2rem', fontSize: '0.85rem' }}
                 placeholder="Search name or email..."
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
@@ -413,7 +413,7 @@ export const AdminDashboardPage: React.FC = () => {
 
             <select
               className="form-input"
-              style={{ padding: '0.5rem 0.85rem', fontSize: '0.85rem', cursor: 'pointer' }}
+              style={{ width: 'auto', minWidth: '135px', padding: '0.5rem 0.85rem', fontSize: '0.85rem', cursor: 'pointer', flexShrink: 0 }}
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
             >
@@ -424,7 +424,7 @@ export const AdminDashboardPage: React.FC = () => {
 
             <select
               className="form-input"
-              style={{ padding: '0.5rem 0.85rem', fontSize: '0.85rem', cursor: 'pointer' }}
+              style={{ width: 'auto', minWidth: '135px', padding: '0.5rem 0.85rem', fontSize: '0.85rem', cursor: 'pointer', flexShrink: 0 }}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
