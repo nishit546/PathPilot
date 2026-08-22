@@ -56,6 +56,10 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
   // Add Activity Modal state
   const [isAddActivityOpen, setIsAddActivityOpen] = useState(false);
   const [targetDay, setTargetDay] = useState<{ dayId: number | string; dayNumber: number; date: string } | null>(null);
+  const [targetCityId, setTargetCityId] = useState<number | string | null>(null);
+  const [targetCityName, setTargetCityName] = useState<string>('');
+  const [locationActivities, setLocationActivities] = useState<Activity[]>([]);
+  const [isFetchingLocationActs, setIsFetchingLocationActs] = useState(false);
   const [selectedActivityId, setSelectedActivityId] = useState<number | string | null>(null);
   const [activityStartTime, setActivityStartTime] = useState('10:00');
   const [activityEndTime, setActivityEndTime] = useState('13:00');
@@ -165,17 +169,48 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
   };
 
   // Open Add Activity Modal
-  const handleOpenAddActivity = (day: TripDay) => {
+  const handleOpenAddActivity = async (day: TripDay, cityId?: number | string, cityName?: string) => {
     setTargetDay({ dayId: day.id, dayNumber: day.dayNumber, date: day.date });
-    if (availableActivities.length > 0) {
-      setSelectedActivityId(availableActivities[0].id);
-      setActivityCost(availableActivities[0].estimatedCost || 2000);
-    }
+    const cId = cityId || null;
+    const cName = cityName || 'Destination';
+    setTargetCityId(cId);
+    setTargetCityName(cName);
     setActivityStartTime('10:00');
     setActivityEndTime('13:00');
     setActivityNotes('');
     setActivityError('');
     setIsAddActivityOpen(true);
+
+    if (cId) {
+      setIsFetchingLocationActs(true);
+      try {
+        const res = await activitiesApi.getActivities({ cityId: cId, limit: 100 });
+        const cityActs = (res.success && res.data)
+          ? (Array.isArray(res.data) ? res.data : ((res.data as any)?.activities || []))
+          : [];
+
+        setLocationActivities(cityActs);
+
+        if (cityActs.length > 0) {
+          setSelectedActivityId(cityActs[0].id);
+          setActivityCost(cityActs[0].estimatedCost || 2000);
+        } else if (availableActivities.length > 0) {
+          setSelectedActivityId(availableActivities[0].id);
+          setActivityCost(availableActivities[0].estimatedCost || 2000);
+        }
+      } catch (e) {
+        console.error('Error loading location activities:', e);
+        setLocationActivities([]);
+      } finally {
+        setIsFetchingLocationActs(false);
+      }
+    } else {
+      setLocationActivities([]);
+      if (availableActivities.length > 0) {
+        setSelectedActivityId(availableActivities[0].id);
+        setActivityCost(availableActivities[0].estimatedCost || 2000);
+      }
+    }
   };
 
   // Submit Activity
@@ -587,7 +622,7 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
                               </div>
 
                               <button
-                                onClick={() => handleOpenAddActivity(day)}
+                                onClick={() => handleOpenAddActivity(day, section.cityId || section.city?.id, section.city?.name)}
                                 style={{
                                   padding: '0.3rem 0.65rem',
                                   background: 'var(--primary-flare-subtle)',
@@ -808,8 +843,8 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
       <Modal
         isOpen={isAddActivityOpen}
         onClose={() => setIsAddActivityOpen(false)}
-        title="Schedule Day Activity"
-        subtitle={targetDay ? `Scheduling for Day ${targetDay.dayNumber} (${targetDay.date})` : 'Schedule Activity'}
+        title={`Schedule Day Activity ${targetCityName ? `— ${targetCityName}` : ''}`}
+        subtitle={targetDay ? `Scheduling for Day ${targetDay.dayNumber} (${targetDay.date}) ${targetCityName ? `in ${targetCityName}` : ''}` : 'Schedule Activity'}
       >
         <form onSubmit={handleCreateActivity}>
           {activityError && (
@@ -834,23 +869,39 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
 
           {/* Activity Selector */}
           <div className="form-group" style={{ marginBottom: '1rem' }}>
-            <label className="form-label">Select Activity *</label>
+            <label className="form-label">
+              Select Activity * {isFetchingLocationActs && <span style={{ fontSize: '0.75rem', color: 'var(--secondary-horizon)', fontWeight: 400 }}>(Fetching {targetCityName} activities...)</span>}
+            </label>
             <select
               className="form-input"
               value={selectedActivityId ? String(selectedActivityId) : ''}
               onChange={(e) => {
                 const actId = e.target.value;
                 setSelectedActivityId(actId);
-                const found = availableActivities.find(a => String(a.id) === String(actId));
+                const found = [...locationActivities, ...availableActivities].find(a => String(a.id) === String(actId));
                 if (found) setActivityCost(found.estimatedCost || 2000);
               }}
               required
             >
-              {availableActivities.map(act => (
-                <option key={act.id} value={String(act.id)}>
-                  {act.name}{act.category ? ` (${act.category})` : ''} — ₹{act.estimatedCost?.toLocaleString()}
-                </option>
-              ))}
+              {locationActivities.length > 0 && (
+                <optgroup label={`📍 Location Activities in ${targetCityName}`}>
+                  {locationActivities.map(act => (
+                    <option key={act.id} value={String(act.id)}>
+                      {act.name}{act.category ? ` (${act.category})` : ''} — ₹{act.estimatedCost?.toLocaleString()}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+
+              <optgroup label={locationActivities.length > 0 ? "Other Regional Activities" : "Available Activities"}>
+                {availableActivities
+                  .filter(a => !locationActivities.some(la => String(la.id) === String(a.id)))
+                  .map(act => (
+                    <option key={act.id} value={String(act.id)}>
+                      {act.name}{act.category ? ` (${act.category})` : ''} — ₹{act.estimatedCost?.toLocaleString()}
+                    </option>
+                  ))}
+              </optgroup>
             </select>
           </div>
 

@@ -33,10 +33,30 @@ class ItineraryService {
       sections.map(async (section) => {
         const city = await cityRepository.findById(section.cityId);
         const days = await dayRepository.findBySectionId(section.id);
+        const daysWithActivities = await Promise.all(
+          days.map(async (day) => {
+            const dayActs = await dayActivityRepository.findByDayId(day.id);
+            const populatedActs = await Promise.all(
+              dayActs.map(async (da) => {
+                const actMeta = await activityRepository.findById(da.activityId);
+                return {
+                  ...da,
+                  name: actMeta?.name || 'Activity',
+                  activity: actMeta || null
+                };
+              })
+            );
+            return {
+              ...day,
+              dayActivities: populatedActs,
+              activities: populatedActs
+            };
+          })
+        );
         return {
           ...section,
           city: city || null,
-          days
+          days: daysWithActivities
         };
       })
     );
@@ -57,8 +77,22 @@ class ItineraryService {
 
     const daysWithActivities = await Promise.all(
       days.map(async (day) => {
-        const activities = await dayActivityRepository.findByDayId(day.id);
-        return { ...day, activities };
+        const dayActs = await dayActivityRepository.findByDayId(day.id);
+        const populatedActs = await Promise.all(
+          dayActs.map(async (da) => {
+            const actMeta = await activityRepository.findById(da.activityId);
+            return {
+              ...da,
+              name: actMeta?.name || 'Activity',
+              activity: actMeta || null
+            };
+          })
+        );
+        return {
+          ...day,
+          dayActivities: populatedActs,
+          activities: populatedActs
+        };
       })
     );
 
@@ -104,19 +138,31 @@ class ItineraryService {
 
     const createdDays = await dayRepository.createBulk(dayRecordsToCreate);
 
-    // Record activity log
-    await tripActivityLogRepository.create({
-      tripId: trip.id,
-      userId,
-      action: 'SECTION_CREATED',
-      description: `Added destination section for ${city.name} (${createdSection.startDate} to ${createdSection.endDate})`
-    });
+    // Auto-populate 1-2 location-matching activities from the destination city for each created day
+    const cityActivities = await activityRepository.findByCityId(city.id);
+    if (cityActivities && cityActivities.length > 0) {
+      for (let i = 0; i < createdDays.length; i++) {
+        const day = createdDays[i];
+        const act = cityActivities[i % cityActivities.length];
+        if (act) {
+          try {
+            await dayActivityRepository.create({
+              dayId: day.id,
+              activityId: act.id,
+              activityOrder: 1,
+              plannedTime: '10:00:00',
+              notes: `Explore ${act.name} in ${city.name}`,
+              expenseAmount: act.estimatedCost || 0
+            });
+          } catch (err) {
+            console.error('Failed to auto-assign day activity:', err);
+          }
+        }
+      }
+    }
 
-    return {
-      ...createdSection,
-      city,
-      days: createdDays
-    };
+    // Re-fetch populated section with day activities
+    return this.getSectionById(createdSection.id, userId);
   }
 
   async updateSection(sectionId, userId, updateData) {
