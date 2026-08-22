@@ -27,6 +27,7 @@ const tripSearchSchema = z.object({
 
 const activitySearchSchema = z.object({
   q: z.string().max(100).optional().default(''),
+  search: z.string().max(100).optional(),
   category: z.string().max(50).optional(),
   city: z.string().max(100).optional(),
   minCost: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]).optional(),
@@ -41,6 +42,7 @@ const activitySearchSchema = z.object({
 
 const citySearchSchema = z.object({
   q: z.string().max(100).optional().default(''),
+  search: z.string().max(100).optional(),
   country: z.string().max(100).optional(),
   region: z.string().max(100).optional(),
   minCostIndex: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]).optional(),

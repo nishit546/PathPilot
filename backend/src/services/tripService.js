@@ -9,6 +9,7 @@ const sharedTripRepository = require('../repositories/sharedTripRepository');
 const tripCollaboratorRepository = require('../repositories/tripCollaboratorRepository');
 const tripActivityLogRepository = require('../repositories/tripActivityLogRepository');
 const tripAccessService = require('./tripAccessService');
+const imageService = require('./imageService');
 const ApiError = require('../utils/ApiError');
 const { parsePagination } = require('../utils/pagination');
 
@@ -24,12 +25,74 @@ class TripService {
     return calculateTripStatus(startDate, endDate);
   }
 
+  async _enrichTripCoverImage(trip) {
+    if (!trip) return trip;
+    const defaultParisUrl = '1502602898657-3e91760cbb34';
+    let currentImage = trip.coverImage || trip.coverPhoto || trip.cover_image_url;
+
+    // Return if trip already has a unique non-default cover image
+    if (currentImage && !currentImage.includes(defaultParisUrl)) {
+      return trip;
+    }
+
+    let resolvedImage = null;
+
+    // 1. Check sections for a city image
+    try {
+      const sections = await tripSectionRepository.findByTripId(trip.id);
+      if (sections && sections.length > 0) {
+        for (const sec of sections) {
+          if (sec.cityId) {
+            const city = await cityRepository.findById(sec.cityId);
+            if (city && (city.imageUrl || city.image_url)) {
+              resolvedImage = city.imageUrl || city.image_url;
+              break;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      // Ignore section lookup failure
+    }
+
+    // 2. Extract location keywords from trip title / description
+    if (!resolvedImage) {
+      const text = `${trip.title || trip.name || ''} ${trip.description || ''}`;
+      const locations = ['Jaipur', 'Varanasi', 'Manali', 'Goa', 'Kochi', 'Leh', 'Udaipur', 'Rishikesh', 'Amritsar', 'Agra', 'Tokyo', 'Kyoto', 'Paris', 'Rome', 'Dubai', 'Singapore', 'London', 'Zurich', 'Sydney', 'Bali', 'Bangkok'];
+      const foundLoc = locations.find(loc => text.toLowerCase().includes(loc.toLowerCase()));
+
+      if (foundLoc) {
+        resolvedImage = await imageService.getDestinationImage(foundLoc);
+      } else {
+        const cleanTitle = (trip.title || trip.name || 'Travel').split(':')[0].split('(')[0].trim();
+        resolvedImage = await imageService.getDestinationImage(cleanTitle);
+      }
+    }
+
+    if (resolvedImage) {
+      try {
+        await tripRepository.update(trip.id, { coverPhoto: resolvedImage, coverImage: resolvedImage });
+      } catch (err) {
+        // Silently ignore DB update error
+      }
+      return {
+        ...trip,
+        coverPhoto: resolvedImage,
+        coverImage: resolvedImage,
+        cover_image_url: resolvedImage
+      };
+    }
+
+    return trip;
+  }
+
   async getUserTrips(userId, query = {}) {
     if (query.status) {
       const targetStatus = query.status.toUpperCase();
       const allUserTrips = await tripRepository.findByUserId(userId, { ...query, limit: 1000, page: 1 });
       
-      const filtered = allUserTrips.trips
+      const enriched = await Promise.all(allUserTrips.trips.map(t => this._enrichTripCoverImage(t)));
+      const filtered = enriched
         .map(t => ({
           ...t,
           status: calculateTripStatus(t.startDate, t.endDate)
@@ -48,7 +111,8 @@ class TripService {
     }
 
     const result = await tripRepository.findByUserId(userId, query);
-    const tripsWithStatus = result.trips.map(t => ({
+    const enriched = await Promise.all(result.trips.map(t => this._enrichTripCoverImage(t)));
+    const tripsWithStatus = enriched.map(t => ({
       ...t,
       status: calculateTripStatus(t.startDate, t.endDate)
     }));
@@ -63,7 +127,8 @@ class TripService {
 
   async getPublicTrips(query = {}) {
     const result = await tripRepository.findPublicTrips(query);
-    const tripsWithStatus = result.trips.map(t => ({
+    const enriched = await Promise.all(result.trips.map(t => this._enrichTripCoverImage(t)));
+    const tripsWithStatus = enriched.map(t => ({
       ...t,
       status: calculateTripStatus(t.startDate, t.endDate)
     }));
@@ -71,13 +136,14 @@ class TripService {
     return {
       trips: tripsWithStatus,
       total: result.total,
-      page,
-      limit
+      page: result.page || 1,
+      limit: result.limit || 20
     };
   }
 
   async getTripById(tripId, currentUserId) {
-    const { trip, role } = await tripAccessService.requirePermission(tripId, currentUserId, ['OWNER', 'EDITOR', 'VIEWER']);
+    const { trip: rawTrip, role } = await tripAccessService.requirePermission(tripId, currentUserId, ['OWNER', 'EDITOR', 'VIEWER']);
+    const trip = await this._enrichTripCoverImage(rawTrip);
 
     const sections = await tripSectionRepository.findByTripId(trip.id);
     const sectionsWithDetails = await Promise.all(

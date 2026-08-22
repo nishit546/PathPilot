@@ -7,6 +7,8 @@ const cityRepository = require('../repositories/cityRepository');
 const activityRepository = require('../repositories/activityRepository');
 const tripTemplateRepository = require('../repositories/tripTemplateRepository');
 const communityRepository = require('../repositories/communityRepository');
+const geoapifyService = require('./geoapifyService');
+const imageService = require('./imageService');
 const { getTripStatus } = require('../utils/analyticsCalculator');
 const {
   matchesQuery,
@@ -401,6 +403,36 @@ class SearchService {
       ...c,
       relevance: calculateRelevanceScore(c.name, q, c.popularity || 0)
     }));
+
+    if (q.length >= 2) {
+      try {
+        const geoResults = await geoapifyService.searchDestinations(q);
+        const existingNames = new Set(filtered.map(c => `${c.name.toLowerCase()}-${c.country.toLowerCase()}`));
+        for (const geo of geoResults) {
+          const key = `${geo.name.toLowerCase()}-${geo.country.toLowerCase()}`;
+          if (!existingNames.has(key)) {
+            existingNames.add(key);
+            const imageUrl = await imageService.getDestinationImage(geo.name, geo.country);
+            filtered.push({
+              id: geo.placeId,
+              name: geo.name,
+              country: geo.country,
+              region: geo.stateRegion || 'Global',
+              description: geo.formatted,
+              imageUrl,
+              popularity: 75,
+              costIndex: 30,
+              latitude: geo.latitude,
+              longitude: geo.longitude,
+              source: 'geoapify',
+              relevance: calculateRelevanceScore(geo.name, q, 75)
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Geoapify searchCities fallback warning:', err.message);
+      }
+    }
 
     // Sorting
     const sortBy = (query.sortBy || 'POPULARITY').toUpperCase();

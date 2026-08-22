@@ -66,6 +66,27 @@ export const CreateTripModal: React.FC<CreateTripModalProps> = ({
     }
   }, [isOpen, selectedCityId]);
 
+  // Debounced backend city search (Geoapify integrated)
+  useEffect(() => {
+    if (!citySearch || citySearch.trim().length < 2) return;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await citiesApi.getCities({ search: citySearch.trim() });
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setAvailableCities(prev => {
+            const map = new Map(prev.map(c => [String(c.id || c.name), c]));
+            res.data.forEach(c => map.set(String(c.id || c.name), c));
+            return Array.from(map.values());
+          });
+        }
+      } catch (err) {
+        // Ignore background error
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [citySearch]);
+
   if (!isOpen) return null;
 
   const filteredCities = availableCities.filter(

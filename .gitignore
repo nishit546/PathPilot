@@ -4,6 +4,12 @@ node_modules/
 .pnp
 .pnp.js
 
+# Lock files (each developer regenerates locally)
+package-lock.json
+*/package-lock.json
+yarn.lock
+*/yarn.lock
+
 # Environment Variables & Secrets
 .env
 .env.local

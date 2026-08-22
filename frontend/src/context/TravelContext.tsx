@@ -15,48 +15,133 @@ export interface RegionInfo {
   image: string;
   cityCount: number;
   costIndex: string;
+  description: string;
+  bestSeason: string;
+  avgCostPerDay: string;
+  recommendedDuration: string;
+  travelVibe: string[];
+  topCities: { name: string; country: string; image: string; highlight: string }[];
+  popularActivities: { name: string; category: string; cost: string; duration: string }[];
 }
 
 export const REGIONS_INFO: RegionInfo[] = [
   {
     id: 'europe',
     name: 'Europe',
-    tagline: 'Historic charm, art, and romantic landscapes',
-    image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80',
-    cityCount: 3,
-    costIndex: '$$$'
+    tagline: 'Historic charm, art treasures, and romantic landscapes',
+    image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1200&q=80',
+    cityCount: 5,
+    costIndex: '$$$',
+    description: 'Embark on a fairytale journey through grand Gothic architecture, world-renowned museums, sun-drenched Mediterranean beaches, and snow-capped Alpine vistas.',
+    bestSeason: 'May – September',
+    avgCostPerDay: '₹12,000 / day',
+    recommendedDuration: '7 – 14 Days',
+    travelVibe: ['Art & History', 'Romantic Escapes', 'Gourmet Dining', 'Alpine Nature'],
+    topCities: [
+      { name: 'Paris', country: 'France', image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=600&q=80', highlight: 'Eiffel Tower & Louvre Museum' },
+      { name: 'Rome', country: 'Italy', image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=600&q=80', highlight: 'Colosseum & Vatican City' },
+      { name: 'Barcelona', country: 'Spain', image: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?auto=format&fit=crop&w=600&q=80', highlight: 'Sagrada Família & Tapas' },
+      { name: 'Zurich', country: 'Switzerland', image: 'https://images.unsplash.com/photo-1515488764276-beab7607c1e6?auto=format&fit=crop&w=600&q=80', highlight: 'Lake Zurich & Swiss Alps' },
+      { name: 'London', country: 'United Kingdom', image: 'https://images.unsplash.com/photo-1520986606214-8b456906c813?auto=format&fit=crop&w=600&q=80', highlight: 'Tower Bridge & Royal Palaces' }
+    ],
+    popularActivities: [
+      { name: 'Eiffel Tower Summit Access & Seine Cruise', category: 'Sightseeing', cost: '₹7,500', duration: '3.5 Hours' },
+      { name: 'Louvre Museum Masterpieces Guided Tour', category: 'Culture', cost: '₹6,000', duration: '3 Hours' },
+      { name: 'Colosseum & Roman Forum Gladiator Tour', category: 'History', cost: '₹5,500', duration: '3.5 Hours' },
+      { name: 'Sagrada Família & Park Güell Experience', category: 'Architecture', cost: '₹5,200', duration: '4 Hours' }
+    ]
   },
   {
     id: 'asia',
     name: 'Asia & Pacific',
     tagline: 'Vibrant markets, ancient temples, and modern hubs',
-    image: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=800&q=80',
-    cityCount: 4,
-    costIndex: '$$'
+    image: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80',
+    cityCount: 15,
+    costIndex: '$$',
+    description: 'Immerse yourself in rich heritage traditions, royal palaces of Rajasthan, high-altitude Himalayan thrill, serene backwaters of Kerala, and vibrant street food alleys across Tokyo and Bangkok.',
+    bestSeason: 'October – March',
+    avgCostPerDay: '₹4,500 / day',
+    recommendedDuration: '5 – 12 Days',
+    travelVibe: ['Heritage & Temples', 'Mountain Treks', 'Street Food', 'Tropical Beaches'],
+    topCities: [
+      { name: 'Jaipur', country: 'India', image: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=600&q=80', highlight: 'Amer Fort & Hawa Mahal' },
+      { name: 'Goa', country: 'India', image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=600&q=80', highlight: 'Golden Beaches & Latin Quarter' },
+      { name: 'Manali', country: 'India', image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=600&q=80', highlight: 'Solang Paragliding & Cedar Trails' },
+      { name: 'Tokyo', country: 'Japan', image: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=600&q=80', highlight: 'Shibuya Crossing & Senso-ji' },
+      { name: 'Bangkok', country: 'Thailand', image: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=600&q=80', highlight: 'Floating Markets & Shrines' }
+    ],
+    popularActivities: [
+      { name: 'Red Fort & Old Delhi Heritage Walk', category: 'Culture', cost: '₹1,200', duration: '4 Hours' },
+      { name: 'Solang Valley Paragliding & Zorbing', category: 'Adventure', cost: '₹3,500', duration: '2.5 Hours' },
+      { name: 'Mandovi River Sunset Folk Cruise', category: 'Entertainment', cost: '₹1,500', duration: '2 Hours' },
+      { name: 'Shibuya Crossing & Harajuku Tour', category: 'Culture', cost: '₹5,000', duration: '3 Hours' }
+    ]
   },
   {
     id: 'americas',
     name: 'Americas',
     tagline: 'Iconic skylines, national parks, and cultural melting pots',
-    image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=800&q=80',
-    cityCount: 1,
-    costIndex: '$$$$'
+    image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=1200&q=80',
+    cityCount: 4,
+    costIndex: '$$$$',
+    description: 'Experience non-stop energy, legendary Broadway shows, Central Park leisure, soaring skyscrapers, and world-renowned entertainment capitals.',
+    bestSeason: 'April – October',
+    avgCostPerDay: '₹18,000 / day',
+    recommendedDuration: '6 – 10 Days',
+    travelVibe: ['City Skylines', 'Broadway Shows', 'Iconic Landmarks', 'National Parks'],
+    topCities: [
+      { name: 'New York', country: 'United States', image: 'https://images.unsplash.com/photo-1534430480872-3498386e7856?auto=format&fit=crop&w=600&q=80', highlight: 'Times Square & Central Park' },
+      { name: 'Los Angeles', country: 'United States', image: 'https://images.unsplash.com/photo-1580655653885-65763b2597d0?auto=format&fit=crop&w=600&q=80', highlight: 'Hollywood Sign & Santa Monica' },
+      { name: 'San Francisco', country: 'United States', image: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=600&q=80', highlight: 'Golden Gate Bridge & Cable Cars' }
+    ],
+    popularActivities: [
+      { name: 'Broadway Evening Musical Show', category: 'Entertainment', cost: '₹12,000', duration: '3 Hours' },
+      { name: 'Central Park Bike Tour & Picnic', category: 'Relaxation', cost: '₹4,000', duration: '2.5 Hours' },
+      { name: 'Statue of Liberty & Ellis Island Cruise', category: 'Sightseeing', cost: '₹5,500', duration: '4 Hours' }
+    ]
   },
   {
     id: 'middle-east',
     name: 'Middle East',
     tagline: 'Futuristic architecture, desert wonders, and luxury',
-    image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=800&q=80',
-    cityCount: 1,
-    costIndex: '$$$'
+    image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1200&q=80',
+    cityCount: 3,
+    costIndex: '$$$',
+    description: 'Discover ultra-modern architectural marvels, world-record observation decks, sunset luxury yacht cruises, and thrill-filled desert dune bashing.',
+    bestSeason: 'November – March',
+    avgCostPerDay: '₹14,000 / day',
+    recommendedDuration: '4 – 7 Days',
+    travelVibe: ['Luxury & Shopping', 'Futuristic Wonders', 'Desert Safaris', 'Yacht Sailing'],
+    topCities: [
+      { name: 'Dubai', country: 'United Arab Emirates', image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=600&q=80', highlight: 'Burj Khalifa & Desert Dune Safari' },
+      { name: 'Abu Dhabi', country: 'United Arab Emirates', image: 'https://images.unsplash.com/photo-1512632578888-169bbbc64f33?auto=format&fit=crop&w=600&q=80', highlight: 'Sheikh Zayed Mosque & Louvre' }
+    ],
+    popularActivities: [
+      { name: 'Red Dune Desert Safari & BBQ Dinner', category: 'Adventure', cost: '₹5,000', duration: '6 Hours' },
+      { name: 'Burj Khalifa At the Top Observation Access', category: 'Sightseeing', cost: '₹6,500', duration: '2 Hours' },
+      { name: 'Dubai Marina Sunset Yacht Cruise', category: 'Luxury', cost: '₹8,000', duration: '2.5 Hours' }
+    ]
   },
   {
     id: 'oceania',
     name: 'Oceania',
     tagline: 'Sunny coastlines, harbor icons, and scenic reefs',
-    image: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=800&q=80',
-    cityCount: 1,
-    costIndex: '$$$'
+    image: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=1200&q=80',
+    cityCount: 3,
+    costIndex: '$$$',
+    description: 'Relax along pristine ocean shores, climb iconic harbor bridge arches, dive into coral reefs, and journey through breathtaking alpine fjords.',
+    bestSeason: 'December – March',
+    avgCostPerDay: '₹15,000 / day',
+    recommendedDuration: '7 – 12 Days',
+    travelVibe: ['Coastal Living', 'Harbor Views', 'Coral Reefs', 'Outdoor Nature'],
+    topCities: [
+      { name: 'Sydney', country: 'Australia', image: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=600&q=80', highlight: 'Opera House & Harbour Bridge' },
+      { name: 'Melbourne', country: 'Australia', image: 'https://images.unsplash.com/photo-1514395462725-fb4566210144?auto=format&fit=crop&w=600&q=80', highlight: 'Laneway Coffee & Yarra River' }
+    ],
+    popularActivities: [
+      { name: 'Sydney Harbour Bridge Sunset Climb', category: 'Adventure', cost: '₹15,000', duration: '3.5 Hours' },
+      { name: 'Sydney Opera House Guided Heritage Tour', category: 'Culture', cost: '₹4,200', duration: '2 Hours' }
+    ]
   }
 ];
 

@@ -218,10 +218,39 @@ export const TripsPage: React.FC<TripsPageProps> = ({
         >
           {filteredTrips.map(trip => {
             const duration = calculateDuration(trip.startDate, trip.endDate);
-            const cover =
-              trip.coverImage ||
-              trip.sections?.[0]?.city?.imageUrl ||
-              'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80';
+            const defaultParis = '1502602898657-3e91760cbb34';
+            const rawCover = trip.coverImage || (trip as any).coverPhoto || (trip as any).cover_image_url;
+            let cover = rawCover && !rawCover.includes(defaultParis) ? rawCover : null;
+
+            if (!cover && trip.sections && trip.sections.length > 0) {
+              for (const sec of trip.sections) {
+                if (sec.city?.imageUrl) { cover = sec.city.imageUrl; break; }
+                if ((sec.city as any)?.image) { cover = (sec.city as any).image; break; }
+              }
+            }
+
+            if (!cover) {
+              const text = `${trip.title || trip.name || ''} ${trip.description || ''}`.toLowerCase();
+              if (text.includes('jaipur') || text.includes('rajasthan')) cover = 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80';
+              else if (text.includes('goa')) cover = 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80';
+              else if (text.includes('delhi')) cover = 'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=800&q=80';
+              else if (text.includes('manali')) cover = 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80';
+              else if (text.includes('kashi') || text.includes('varanasi')) cover = 'https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=800&q=80';
+              else if (text.includes('tokyo') || text.includes('japan')) cover = 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=800&q=80';
+              else if (text.includes('dubai')) cover = 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=800&q=80';
+              else {
+                const fallbackList = [
+                  'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80',
+                  'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
+                  'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=800&q=80',
+                  'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80'
+                ];
+                let sum = 0;
+                const keyStr = String(trip.id || trip.title || 'trip');
+                for (let i = 0; i < keyStr.length; i++) sum += keyStr.charCodeAt(i);
+                cover = fallbackList[sum % fallbackList.length];
+              }
+            }
 
             return (
               <div
