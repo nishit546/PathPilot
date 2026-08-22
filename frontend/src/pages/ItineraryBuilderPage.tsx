@@ -715,18 +715,18 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
             </div>
           )}
 
-          {/* City Picker */}
+          {/* City Selection */}
           <div className="form-group" style={{ marginBottom: '1rem' }}>
             <label className="form-label">Destination City *</label>
             <select
               className="form-input"
-              value={sectionCityId || ''}
-              onChange={(e) => setSectionCityId(Number(e.target.value))}
+              value={sectionCityId ? String(sectionCityId) : ''}
+              onChange={(e) => setSectionCityId(e.target.value)}
               required
             >
               {availableCities.map(city => (
-                <option key={city.id} value={city.id}>
-                  {city.name}, {city.country} ({city.region})
+                <option key={city.id} value={String(city.id)}>
+                  {city.name}, {city.country}{city.region ? ` (${city.region})` : ''}
                 </option>
               ))}
             </select>
@@ -837,18 +837,18 @@ export const ItineraryBuilderPage: React.FC<ItineraryBuilderPageProps> = ({
             <label className="form-label">Select Activity *</label>
             <select
               className="form-input"
-              value={selectedActivityId || ''}
+              value={selectedActivityId ? String(selectedActivityId) : ''}
               onChange={(e) => {
-                const actId = Number(e.target.value);
+                const actId = e.target.value;
                 setSelectedActivityId(actId);
-                const found = availableActivities.find(a => a.id === actId);
+                const found = availableActivities.find(a => String(a.id) === String(actId));
                 if (found) setActivityCost(found.estimatedCost || 2000);
               }}
               required
             >
               {availableActivities.map(act => (
-                <option key={act.id} value={act.id}>
-                  {act.name} ({act.category}) — ₹{act.estimatedCost?.toLocaleString()}
+                <option key={act.id} value={String(act.id)}>
+                  {act.name}{act.category ? ` (${act.category})` : ''} — ₹{act.estimatedCost?.toLocaleString()}
                 </option>
               ))}
             </select>
